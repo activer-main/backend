@@ -52,6 +52,8 @@ public class User : BaseEntity
     public List<UserVoteTagInActivity>? UserVoteTagInActivities { get; set; }
 
     public List<BranchStatus>? BranchStatus { get; set; }
+    
+    public List<UserActivityRecord>? UserActivityRecords { get; set; }
 }
 
 public class Avatar : BaseEntity
@@ -172,4 +174,22 @@ public class UserVoteTagInActivity : BaseEntity
 
     [Range(-1, 1)]
     public int Vote { get; set; } = 0;
+}
+
+[Index(nameof(UserId), nameof(ActivityId), IsUnique = true)]
+public class UserActivityRecord : BaseEntity
+{
+    [Key]
+    public Guid ActivityRecordId { get; set; }
+
+    [Column(TypeName = "text")]
+    public string Content { get; set; }
+
+    [JsonIgnore]
+    public User User { get; set; }
+    public int UserId { get; set; }
+
+    [JsonIgnore]
+    public Activity Activity { get; set; }
+    public int ActivityId { get; set; }
 }
