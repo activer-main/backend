@@ -1,5 +1,6 @@
 ﻿using Microsoft.CodeAnalysis;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Identity.Client;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json.Serialization;
@@ -14,10 +15,11 @@ public class Activity : BaseEntity
     public string Title { get; set; }
     public string? Subtitle { get; set; }
 
-    [Column(TypeName="text")]
+    [Column(TypeName="text"), Required]
     public string Content { get; set; }
     public int ActivityClickedCount { get; set; } = 0;
 
+    [Required]
     public List<Branch> Branches { get; set; }
     public List<Image>? Images { get; set; }
     public List<Source>? Sources { get; set; }
@@ -25,6 +27,7 @@ public class Activity : BaseEntity
     public List<Holder>? Holders { get; set; }
     public List<Objective>? Objectives { get; set; }
     public List<UserVoteTagInActivity>? UserVoteTagInActivity { get; set; }
+    public List<UserActivityRecord>? UserActivityRecords { get; set; }
 }
 
 public class Image : BaseEntity

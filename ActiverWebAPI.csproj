@@ -21,7 +21,6 @@
   <ItemGroup>
     <Folder Include="Controllers\" />
     <Folder Include="Migrations\" />
-    <Folder Include="Models\DTO\" />
     <Folder Include="Services\UnitOfWork\" />
     <Folder Include="Services\Repository\" />
   </ItemGroup>
