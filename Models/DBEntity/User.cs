@@ -9,6 +9,7 @@ public class User : BaseEntity
 {
     [Key]
     public Guid Id { get; set; }
+    public int UserRole { get; set; } = (int) Enum.UserRole.User;
 
     [Required]
     [Column(TypeName = "varchar(512)")]
