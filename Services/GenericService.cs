@@ -20,12 +20,13 @@ public class GenericService<TEntity> : IGenericService<TEntity> where TEntity : 
     {
         return _unitOfWork.Repository<TEntity>().GetAll();
     }
+
     public TEntity GetById(object id)
     {
         return _unitOfWork.Repository<TEntity>().GetById(id);
     }
 
-    public void Create(TEntity entity)
+    public void Add(TEntity entity)
     {
         _unitOfWork.Repository<TEntity>().Add(entity);
         SaveChanges();

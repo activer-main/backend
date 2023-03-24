@@ -23,7 +23,7 @@ public interface IGenericService<TEntity> where TEntity : class
     /// 新增 TEntity
     /// </summary>
     /// <param name="entity">欲新增的 TEntity</param>
-    void Create(TEntity entity);
+    void Add(TEntity entity);
 
     /// <summary>
     /// 更新 TEntity
