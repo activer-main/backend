@@ -8,7 +8,7 @@ namespace ActiverWebAPI.Models.DBEntity;
 public class User : BaseEntity
 {
     [Key]
-    public Guid UserId { get; set; }
+    public Guid Id { get; set; }
 
     [Required]
     [Column(TypeName = "varchar(512)")]
@@ -59,7 +59,7 @@ public class User : BaseEntity
 public class Avatar : BaseEntity
 {
     [Key]
-    public int AvatarId { get; set;}
+    public int Id { get; set;}
     public long Length { get; set; }
     public string Filename { get; set; }
 
@@ -72,7 +72,7 @@ public class Avatar : BaseEntity
 public class Area : BaseEntity
 {
     [Key]
-    public int AreaId { get; set;}
+    public int Id { get; set;}
     public string Content { get; set; }
 
     [JsonIgnore]
@@ -81,7 +81,7 @@ public class Area : BaseEntity
 
 public class County
 {
-    public int CountyId { get; set; }
+    public int Id { get; set; }
     public string Content { get; set; }
 
     [JsonIgnore]
@@ -91,7 +91,7 @@ public class County
 public class Profession : BaseEntity
 {
     [Key]
-    public int ProfessionId { get; set; }
+    public int Id { get; set; }
     [Column(TypeName = "nvarchar(124)")]
     public string Content { get; set; }
 
@@ -102,7 +102,7 @@ public class Profession : BaseEntity
 public class Gender : BaseEntity
 {
     [Key]
-    public int GenderId { get; set; }
+    public int Id { get; set; }
     [Column(TypeName = "nvarchar(256)")]
     public string Content { get; set; }
 
@@ -113,7 +113,7 @@ public class Gender : BaseEntity
 public class SearchHistory : BaseEntity
 {
     [Key]
-    public int SearchHistoryId { get; set; }
+    public int Id { get; set; }
     public string? Keyword { get; set; }
     public List<Tag>? Tags { get; set; }
 
@@ -125,7 +125,7 @@ public class SearchHistory : BaseEntity
 [Index(nameof(ObjectiveName), IsUnique = true)]
 public class Objective : BaseEntity
 {
-    public int ObjectiveId { get; set; }
+    public int Id { get; set; }
 
     [Column(TypeName = "nvarchar(256)")]
     public string ObjectiveName { get; set; }
@@ -140,7 +140,7 @@ public class Objective : BaseEntity
 [Index(nameof(UserId), nameof(ActivityId), IsUnique = true)]
 public class Comment : BaseEntity
 {
-    public int CommentId { get; set; }
+    public int Id { get; set; }
     [Range(0, 50)]
     public int Rate { get; set; }
     public string Content { get; set; }
@@ -158,7 +158,7 @@ public class Comment : BaseEntity
 public class UserVoteTagInActivity : BaseEntity
 {
     [Key]
-    public int UserVoteId { get; set; }
+    public int Id { get; set; }
 
     [JsonIgnore]
     public User User { get; set; }
@@ -180,7 +180,7 @@ public class UserVoteTagInActivity : BaseEntity
 public class UserActivityRecord : BaseEntity
 {
     [Key]
-    public Guid ActivityRecordId { get; set; }
+    public Guid Id { get; set; }
 
     [Column(TypeName = "text")]
     public string Content { get; set; }

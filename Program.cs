@@ -1,5 +1,7 @@
 using ActiverWebAPI.Context;
+using ActiverWebAPI.Interfaces.Service;
 using ActiverWebAPI.Interfaces.UnitOfWork;
+using ActiverWebAPI.Services;
 using ActiverWebAPI.Services.UnitOfWork;
 using Microsoft.EntityFrameworkCore;
 
@@ -14,6 +16,9 @@ builder.Services.AddSwaggerGen();
 
 builder.Services.AddDbContext<ActiverDbContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("DevConnection")));
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+// Services
+builder.Services.AddScoped(typeof(IGenericService<>), typeof(GenericService<>));
+builder.Services.AddScoped<UserService>();
 
 var app = builder.Build();
 

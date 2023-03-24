@@ -6,7 +6,7 @@ namespace ActiverWebAPI.Models.DBEntity;
 [Index(nameof(Text), nameof(Type), IsUnique = true)]
 public class Tag : BaseEntity
 {
-    public int TagId { get; set; }
+    public int Id { get; set; }
 
     [Column(TypeName="nvarchar(50)")]
     public string Text { get; set; }

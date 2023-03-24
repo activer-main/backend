@@ -7,7 +7,7 @@ namespace ActiverWebAPI.Models.DBEntity;
 
 public class Activity : BaseEntity
 {
-    public Guid ActivityId { get; set; }
+    public Guid Id { get; set; }
 
     [Required]
     public string Title { get; set; }
@@ -30,7 +30,7 @@ public class Activity : BaseEntity
 
 public class Image : BaseEntity
 {
-    public int ImageId { get; set; }
+    public int Id { get; set; }
     public string ImageURL { get; set; }
 
     [JsonIgnore]
@@ -40,7 +40,7 @@ public class Image : BaseEntity
 
 public class Source : BaseEntity
 {
-    public int SourceId { get; set; }
+    public int Id { get; set; }
     public string SourceURL { get; set; }
 
     [JsonIgnore]
@@ -49,7 +49,7 @@ public class Source : BaseEntity
 
 public class Connection : BaseEntity
 {
-    public int ConnectionId { get; set; }
+    public int Id { get; set; }
     public string Content { get; set; }
 
     [JsonIgnore]
@@ -59,7 +59,7 @@ public class Connection : BaseEntity
 [Index(nameof(HolderName), IsUnique = true)]
 public class Holder : BaseEntity
 {
-    public int HolderId { get; set; }
+    public int Id { get; set; }
     public string HolderName { get; set; }
 
     [JsonIgnore]
@@ -68,7 +68,7 @@ public class Holder : BaseEntity
 
 public class Branch : BaseEntity
 {
-    public int BranchId { get; set; }
+    public int Id { get; set; }
     public string BranchName { get; set; }
 
     public List<ApplyStart> ApplyStart { get; set;  }
@@ -84,7 +84,7 @@ public class Branch : BaseEntity
 
 public class BranchStatus : BaseEntity
 {
-    public int BranchStatusId { get; set; }
+    public int Id { get; set; }
 
     [JsonIgnore]
     public User User { get; set; }
@@ -101,7 +101,7 @@ public class BranchStatus : BaseEntity
 
 public class ApplyStart : BaseEntity
 {
-    public int ApplyStartId { get; set; }
+    public int Id { get; set; }
     public string Content { get; set; }
 
     [JsonIgnore]
@@ -111,7 +111,7 @@ public class ApplyStart : BaseEntity
 
 public class ApplyEnd : BaseEntity
 {
-    public int ApplyEndId { get; set; }
+    public int Id { get; set; }
     public string Content { get; set; }
 
     [JsonIgnore]
@@ -121,7 +121,7 @@ public class ApplyEnd : BaseEntity
 
 public class ApplyFee : BaseEntity
 {
-    public int ApplyFeeId { get; set; }
+    public int Id { get; set; }
     public string Fee { get; set; }
 
     [JsonIgnore]
@@ -131,7 +131,7 @@ public class ApplyFee : BaseEntity
 
 public class DateStart : BaseEntity
 {
-    public int DateStartId { get; set; }
+    public int Id { get; set; }
     public string Name { get; set; }
     public string Date { get; set; }
 
@@ -142,7 +142,7 @@ public class DateStart : BaseEntity
 
 public class DateEnd : BaseEntity
 {
-    public int DateEndId { get; set; }
+    public int Id { get; set; }
     public string Content { get; set; }
 
     [JsonIgnore]
@@ -153,7 +153,7 @@ public class DateEnd : BaseEntity
 [Index(nameof(Content), IsUnique = true)]
 public class Location
 {
-    public int LocationId { get; set; }
+    public int Id { get; set; }
     public string Content { get; set; }
 
     [JsonIgnore]
