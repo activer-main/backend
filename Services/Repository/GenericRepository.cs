@@ -28,16 +28,6 @@ public class GenericRepository<TEntity> : IRepository<TEntity>
     }
 
     /// <summary>
-    /// 取得第一筆符合條件的內容。如果符合條件有多筆，也只取得第一筆。
-    /// </summary>
-    /// <param name="predicate">要取得的Where條件。</param>
-    /// <returns>取得第一筆符合條件的內容。</returns>
-    public TEntity Get(Expression<Func<TEntity, bool>> predicate)
-    {
-        return Context.Set<TEntity>().Where(predicate).FirstOrDefault();
-    }
-
-    /// <summary>
     /// 以Id查找內容。
     /// </summary>
     /// <param name="id">要取得的Id</param>
@@ -47,6 +37,15 @@ public class GenericRepository<TEntity> : IRepository<TEntity>
         return Context.Set<TEntity>().Find(id);
     }
 
+    /// <summary>
+    /// 取得Entity全部筆數的IQueryable。
+    /// </summary>
+    /// <param name="predicate">Where的表達式</param>
+    /// <returns>Entity全部筆數的IQueryable。</returns>
+    public IQueryable<TEntity> GetAll(Expression<Func<TEntity, bool>> predicate)
+    {
+        return Context.Set<TEntity>().Where(predicate).AsQueryable();
+    }
 
     /// <summary>
     /// 取得Entity全部筆數的IQueryable。
@@ -91,5 +90,25 @@ public class GenericRepository<TEntity> : IRepository<TEntity>
     public void Delete(TEntity entity)
     {
         Context.Entry(entity).State = EntityState.Deleted;
+    }
+
+
+    /// <summary>
+    /// 根據 id 取得 TEntity
+    /// </summary>
+    /// <param name="id">TEntity 的 id</param>
+    /// <returns>符合 id 的 TEntity</returns>
+    public async Task<TEntity> GetByIdAsync(object id)
+    {
+        return await Context.Set<TEntity>().FindAsync(id);
+    }
+
+    /// <summary>
+    /// 新增 TEntity
+    /// </summary>
+    /// <param name="entity">欲新增的 TEntity</param>
+    public async Task AddAsync(TEntity entity)
+    {
+        await Context.Set<TEntity>().AddAsync(entity);
     }
 }

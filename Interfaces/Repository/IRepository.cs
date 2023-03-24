@@ -11,24 +11,23 @@ public interface IRepository<TEntity>
     void Add(TEntity entity);
 
     /// <summary>
-    /// 取得第一筆符合條件的內容。
-    /// </summary>
-    /// <param name="predicate">要取得的Where條件</param>
-    /// <returns>取得第一筆符合條件的內容</returns>
-    TEntity Get(Expression<Func<TEntity, bool>> predicate);
-
-    /// <summary>
     /// 以Id查找內容。
     /// </summary>
     /// <param name="id">要取得的Id</param>
     /// <returns>取得的內容。</returns>
     TEntity GetById(object id);
-
+    
     /// <summary>
     /// 取得 Entity 全部筆數的 IQueryable。
     /// </summary>
     /// <returns>Entity 全部比數的 IQueryable</returns>
     IQueryable<TEntity> GetAll();
+
+    /// <summary>
+    /// 取得 Entity 全部筆數的 IQueryable。
+    /// </summary>
+    /// <returns>Entity 全部比數的 IQueryable</returns>
+    IQueryable<TEntity> GetAll(Expression<Func<TEntity, bool>> predicate);
 
     /// <summary>
     /// 更新一筆資料的內容。
@@ -41,4 +40,11 @@ public interface IRepository<TEntity>
     /// </summary>
     /// <param name="entity">要被刪除的Entity。</param>
     void Delete(TEntity entity);
+
+    /// <summary>
+    /// 以Id查找內容 Async。
+    /// </summary>
+    /// <param name="id">要取得的Id</param>
+    /// <returns>取得的內容。</returns>
+    Task<TEntity> GetByIdAsync(object id);
 }

@@ -31,6 +31,14 @@ public class UnitOfWork : IUnitOfWork
     }
 
     /// <summary>
+    /// 非同步儲存所有異動。
+    /// </summary>
+    public async Task SaveChangesAsync()
+    {
+        await _context.SaveChangesAsync();
+    }
+
+    /// <summary>
     /// 清除此Class的資源。
     /// </summary>
     public void Dispose()
