@@ -38,6 +38,17 @@ public class GenericRepository<TEntity> : IRepository<TEntity>
     }
 
     /// <summary>
+    /// 以Id查找內容。
+    /// </summary>
+    /// <param name="id">要取得的Id</param>
+    /// <returns>取得的內容。</returns>
+    public TEntity GetById(object id)
+    {
+        return Context.Set<TEntity>().Find(id);
+    }
+
+
+    /// <summary>
     /// 取得Entity全部筆數的IQueryable。
     /// </summary>
     /// <returns>Entity全部筆數的IQueryable。</returns>

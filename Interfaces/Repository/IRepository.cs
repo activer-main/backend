@@ -18,6 +18,13 @@ public interface IRepository<TEntity>
     TEntity Get(Expression<Func<TEntity, bool>> predicate);
 
     /// <summary>
+    /// 以Id查找內容。
+    /// </summary>
+    /// <param name="id">要取得的Id</param>
+    /// <returns>取得的內容。</returns>
+    TEntity GetById(object id);
+
+    /// <summary>
     /// 取得 Entity 全部筆數的 IQueryable。
     /// </summary>
     /// <returns>Entity 全部比數的 IQueryable</returns>
