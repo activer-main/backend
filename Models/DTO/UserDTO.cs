@@ -1,6 +1,6 @@
 ﻿namespace ActiverWebAPI.Models.DTO;
 
-public class UserInfo
+public class UserInfoDTO
 {
     public Guid Id { get; set; }
     public string Email { get; set; }
@@ -27,14 +27,14 @@ public class UserActivityRecordDTO
     public Guid ActivityId { get; set; }
 }
 
-public class UserSignUp
+public class UserSignUpDTO
 {
     public string Email { get; set; }
     public string NickName { get; set; }
     public string Password { get; set; }
 }
 
-public class UserSignIn
+public class UserSignInDTO
 {
     public string Email { get; set; }
     public string Password { get; set; }
@@ -42,6 +42,6 @@ public class UserSignIn
 
 public class UserDTO
 {
-    public UserInfo User { get; set; }
+    public UserInfoDTO User { get; set; }
     public TokenDTO Token { get; set; }
 }
