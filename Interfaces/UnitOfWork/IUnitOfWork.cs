@@ -1,4 +1,5 @@
 ﻿using ActiverWebAPI.Interfaces.Repository;
+
 namespace ActiverWebAPI.Interfaces.UnitOfWork;
 
 public interface IUnitOfWork : IDisposable
@@ -20,5 +21,5 @@ public interface IUnitOfWork : IDisposable
     /// </summary>
     /// <typeparam name="T">此Context裡面的Entity Type</typeparam>
     /// <returns>Entity的Repository</returns>
-    IRepository<T> Repository<T>() where T : class;
+    IRepository<TEntity, TKey> Repository<TEntity, TKey>() where TEntity : class, IEntity<TKey>;
 }

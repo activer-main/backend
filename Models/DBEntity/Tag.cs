@@ -1,10 +1,11 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using ActiverWebAPI.Interfaces.Repository;
+using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json.Serialization;
 namespace ActiverWebAPI.Models.DBEntity;
 
 [Index(nameof(Text), nameof(Type), IsUnique = true)]
-public class Tag : BaseEntity
+public class Tag : BaseEntity, IEntity<int>
 {
     public int Id { get; set; }
 

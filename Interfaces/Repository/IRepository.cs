@@ -2,7 +2,7 @@
 
 namespace ActiverWebAPI.Interfaces.Repository;
 
-public interface IRepository<TEntity>
+public interface IRepository<TEntity, Tkey> where TEntity : IEntity<Tkey>
 {
     /// <summary>
     /// 新增一筆資料。
@@ -11,11 +11,17 @@ public interface IRepository<TEntity>
     void Add(TEntity entity);
 
     /// <summary>
+    /// 取得可查詢的資料集合。
+    /// </summary>
+    /// <returns>可查詢的資料集合。</returns>
+    IQueryable<TEntity> Query();
+
+    /// <summary>
     /// 以Id查找內容。
     /// </summary>
     /// <param name="id">要取得的Id</param>
     /// <returns>取得的內容。</returns>
-    TEntity GetById(object id);
+    TEntity GetById(Tkey id);
     
     /// <summary>
     /// 取得 Entity 全部筆數的 IQueryable。
@@ -46,5 +52,5 @@ public interface IRepository<TEntity>
     /// </summary>
     /// <param name="id">要取得的Id</param>
     /// <returns>取得的內容。</returns>
-    Task<TEntity> GetByIdAsync(object id);
+    Task<TEntity> GetByIdAsync(Tkey id);
 }

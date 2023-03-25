@@ -1,4 +1,5 @@
-﻿using ActiverWebAPI.Interfaces.Repository;
+﻿using ActiverWebAPI.Context;
+using ActiverWebAPI.Interfaces.Repository;
 using ActiverWebAPI.Interfaces.UnitOfWork;
 using ActiverWebAPI.Services.Repository;
 using Microsoft.EntityFrameworkCore;
@@ -8,7 +9,7 @@ namespace ActiverWebAPI.Services.UnitOfWork;
 
 public class UnitOfWork : IUnitOfWork
 {
-    private readonly DbContext _context;
+    private readonly ActiverDbContext _context;
 
     private bool _disposed;
     private Hashtable _repositories;
@@ -17,9 +18,29 @@ public class UnitOfWork : IUnitOfWork
     /// 設定此Unit of work(UOF)的Context。
     /// </summary>
     /// <param name="context">設定UOF的context</param>
-    public UnitOfWork(DbContext context)
+    public UnitOfWork(ActiverDbContext context)
     {
         _context = context;
+    }
+
+    /// <summary>
+    /// 取得某一個Entity的Repository。
+    /// 如果沒有取過，會initialise一個
+    /// 如果有就取得之前initialise的那個。
+    /// </summary>
+    /// <typeparam name="TEntity">此Context裡面的Entity Type</typeparam>
+    /// <typeparam name="TKey">Entity的key type</typeparam>
+    /// <returns>Entity的Repository</returns>
+    public IRepository<TEntity, TKey> Repository<TEntity, TKey>() where TEntity : class, IEntity<TKey>
+    {
+        if (_repositories.ContainsKey(typeof(TEntity)))
+        {
+            return (IRepository<TEntity, TKey>)_repositories[typeof(TEntity)];
+        }
+
+        var repository = new GenericRepository<TEntity, TKey>(_context);
+        _repositories.Add(typeof(TEntity), repository);
+        return repository;
     }
 
     /// <summary>
@@ -64,32 +85,5 @@ public class UnitOfWork : IUnitOfWork
         _disposed = true;
     }
 
-    /// <summary>
-    /// 取得某一個Entity的Repository。
-    /// 如果沒有取過，會initialise一個
-    /// 如果有就取得之前initialise的那個。
-    /// </summary>
-    /// <typeparam name="T">此Context裡面的Entity Type</typeparam>
-    /// <returns>Entity的Repository</returns>
-    public IRepository<T> Repository<T>() where T : class
-    {
-        _repositories ??= new Hashtable();
-
-        var type = typeof(T).Name;
-
-        if (!_repositories.ContainsKey(type))
-        {
-            var repositoryType = typeof(GenericRepository<>);
-
-            var repositoryInstance =
-                Activator.CreateInstance(repositoryType
-                        .MakeGenericType(typeof(T)), _context);
-
-            _repositories.Add(type, repositoryInstance);
-        }
-
-        return (IRepository<T>)_repositories[type];
-    }
+    
 }
-
-

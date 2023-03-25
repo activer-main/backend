@@ -1,11 +1,12 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using ActiverWebAPI.Interfaces.Repository;
+using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json.Serialization;
 
 namespace ActiverWebAPI.Models.DBEntity;
 
-public class Activity : BaseEntity
+public class Activity : BaseEntity, IEntity<Guid>
 {
     public Guid Id { get; set; }
 
@@ -28,7 +29,7 @@ public class Activity : BaseEntity
     public List<UserActivityRecord>? UserActivityRecords { get; set; }
 }
 
-public class Image : BaseEntity
+public class Image : BaseEntity, IEntity<int>
 {
     public int Id { get; set; }
     public string ImageURL { get; set; }
@@ -38,7 +39,7 @@ public class Image : BaseEntity
     public Guid ActivityId { get; set; }
 }
 
-public class Source : BaseEntity
+public class Source : BaseEntity, IEntity<int>
 {
     public int Id { get; set; }
     public string SourceURL { get; set; }
@@ -47,7 +48,7 @@ public class Source : BaseEntity
     public List<Activity> Activities { get; set; }
 }
 
-public class Connection : BaseEntity
+public class Connection : BaseEntity, IEntity<int>
 {
     public int Id { get; set; }
     public string Content { get; set; }
@@ -57,7 +58,7 @@ public class Connection : BaseEntity
 }
 
 [Index(nameof(HolderName), IsUnique = true)]
-public class Holder : BaseEntity
+public class Holder : BaseEntity, IEntity<int>
 {
     public int Id { get; set; }
     public string HolderName { get; set; }
@@ -66,7 +67,7 @@ public class Holder : BaseEntity
     public List<Activity> Activities { get; set; }
 }
 
-public class Branch : BaseEntity
+public class Branch : BaseEntity, IEntity<int>
 {
     public int Id { get; set; }
     public string BranchName { get; set; }
@@ -82,7 +83,7 @@ public class Branch : BaseEntity
     public List<BranchStatus> BranchStatus { get; set; }
 }
 
-public class BranchStatus : BaseEntity
+public class BranchStatus : BaseEntity, IEntity<int>
 {
     public int Id { get; set; }
 
@@ -99,7 +100,7 @@ public class BranchStatus : BaseEntity
     public string Status { get; set; }
 }
 
-public class ApplyStart : BaseEntity
+public class ApplyStart : BaseEntity, IEntity<int>
 {
     public int Id { get; set; }
     public string Content { get; set; }
@@ -109,7 +110,7 @@ public class ApplyStart : BaseEntity
     public int BranchId { get; set; }
 }
 
-public class ApplyEnd : BaseEntity
+public class ApplyEnd : BaseEntity, IEntity<int>
 {
     public int Id { get; set; }
     public string Content { get; set; }
@@ -119,7 +120,7 @@ public class ApplyEnd : BaseEntity
     public int BranchId { get; set; }
 }
 
-public class ApplyFee : BaseEntity
+public class ApplyFee : BaseEntity, IEntity<int>
 {
     public int Id { get; set; }
     public string Fee { get; set; }
@@ -129,7 +130,7 @@ public class ApplyFee : BaseEntity
     public int BranchId { get; set; }
 }
 
-public class DateStart : BaseEntity
+public class DateStart : BaseEntity, IEntity<int>
 {
     public int Id { get; set; }
     public string Name { get; set; }
@@ -140,7 +141,7 @@ public class DateStart : BaseEntity
     public int BranchId { get; set; }
 }
 
-public class DateEnd : BaseEntity
+public class DateEnd : BaseEntity, IEntity<int>
 {
     public int Id { get; set; }
     public string Content { get; set; }
@@ -151,7 +152,7 @@ public class DateEnd : BaseEntity
 }
 
 [Index(nameof(Content), IsUnique = true)]
-public class Location
+public class Location : BaseEntity, IEntity<int>
 {
     public int Id { get; set; }
     public string Content { get; set; }

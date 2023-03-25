@@ -5,15 +5,17 @@ using Microsoft.EntityFrameworkCore;
 
 namespace ActiverWebAPI.Services;
 
-public class UserService : GenericService<User>
+public class UserService : GenericService<User, Guid>
 {
     private readonly IUnitOfWork _unitOfWork;
-    private readonly IRepository<User> _userRepository;
+    private readonly IRepository<User, Guid> _userRepository;
+    private readonly IConfiguration _configuration;
 
-    public UserService(IUnitOfWork unitOfWork) : base(unitOfWork)
+    public UserService(IUnitOfWork unitOfWork, IConfiguration configuration) : base(unitOfWork)
     {
+        _configuration = configuration;
         _unitOfWork = unitOfWork;
-        _userRepository = _unitOfWork.Repository<User>();
+        _userRepository = _unitOfWork.Repository<User, Guid>();
     }
 
     /// <summary>
@@ -27,5 +29,24 @@ public class UserService : GenericService<User>
             .GetAll(e => e.Email == email)
             .FirstOrDefaultAsync();
         return user;
+    }
+
+    /// <summary>
+    /// 以 id 產生 Avatar URL。
+    /// </summary>
+    /// <param name="id">User Id。</param>
+    /// <returns>Avatar URL</returns>
+    public string GetUserAvatarURL(Guid userId)
+    {
+        var user = _userRepository.GetAll(user => user.Id == userId)
+            .Include(e => e.Avatar).FirstOrDefault();
+
+        if (user == null)
+            return null;
+
+        if (user.Avatar == null)
+            return null;
+
+        return _configuration["Server:Domain"] + $"/api/user/avatar/{user.Avatar.Id}";
     }
 }

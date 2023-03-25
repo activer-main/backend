@@ -4,8 +4,8 @@ using System.Linq.Expressions;
 
 namespace ActiverWebAPI.Services.Repository;
 
-public class GenericRepository<TEntity> : IRepository<TEntity> 
-    where TEntity : class
+public class GenericRepository<TEntity, TKey> : IRepository<TEntity, TKey>
+    where TEntity : class, IEntity<TKey>
 {
     private DbContext Context { get; set; }
 
@@ -32,7 +32,7 @@ public class GenericRepository<TEntity> : IRepository<TEntity>
     /// </summary>
     /// <param name="id">要取得的Id</param>
     /// <returns>取得的內容。</returns>
-    public TEntity GetById(object id)
+    public TEntity GetById(TKey id)
     {
         return Context.Set<TEntity>().Find(id);
     }
@@ -92,13 +92,12 @@ public class GenericRepository<TEntity> : IRepository<TEntity>
         Context.Entry(entity).State = EntityState.Deleted;
     }
 
-
     /// <summary>
     /// 根據 id 取得 TEntity
     /// </summary>
     /// <param name="id">TEntity 的 id</param>
     /// <returns>符合 id 的 TEntity</returns>
-    public async Task<TEntity> GetByIdAsync(object id)
+    public async Task<TEntity> GetByIdAsync(TKey id)
     {
         return await Context.Set<TEntity>().FindAsync(id);
     }
@@ -110,5 +109,14 @@ public class GenericRepository<TEntity> : IRepository<TEntity>
     public async Task AddAsync(TEntity entity)
     {
         await Context.Set<TEntity>().AddAsync(entity);
+    }
+
+    /// <summary>
+    /// 取得目前 Entity 的 Queryable 物件。
+    /// </summary>
+    /// <returns>Queryable 物件。</returns>
+    public IQueryable<TEntity> Query()
+    {
+        return Context.Set<TEntity>().AsQueryable();
     }
 }

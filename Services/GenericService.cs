@@ -1,5 +1,7 @@
-﻿using ActiverWebAPI.Interfaces.Service;
+﻿using ActiverWebAPI.Interfaces.Repository;
+using ActiverWebAPI.Interfaces.Service;
 using ActiverWebAPI.Interfaces.UnitOfWork;
+using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
 
 namespace ActiverWebAPI.Services;
@@ -8,7 +10,7 @@ namespace ActiverWebAPI.Services;
 /// 泛型的 Service 實作類別，提供基本的 CRUD 操作
 /// </summary>
 /// <typeparam name="TEntity">實體類別</typeparam>
-public class GenericService<TEntity> : IGenericService<TEntity> where TEntity : class
+public class GenericService<TEntity, TKey> : IGenericService<TEntity, TKey> where TEntity : class, IEntity<TKey>
 {
     private readonly IUnitOfWork _unitOfWork;
 
@@ -17,64 +19,95 @@ public class GenericService<TEntity> : IGenericService<TEntity> where TEntity : 
         _unitOfWork = unitOfWork;
     }
 
-    public IEnumerable<TEntity> GetAll(Expression<Func<TEntity, bool>> predicate)
+    /// <inheritdoc />
+    public IQueryable<TEntity> GetAll(Expression<Func<TEntity, bool>> predicate)
     {
-        return _unitOfWork.Repository<TEntity>().GetAll(predicate);
+        return _unitOfWork.Repository<TEntity, TKey>().GetAll(predicate);
     }
 
-    public TEntity GetById(object id)
+    /// <inheritdoc />
+    public IQueryable<TEntity> GetAll()
     {
-        return _unitOfWork.Repository<TEntity>().GetById(id);
+        return _unitOfWork.Repository<TEntity, TKey>().GetAll();
     }
 
-    public async Task<TEntity> GetByIdAsync(object id)
+    /// <inheritdoc />
+    public TEntity GetById(TKey id, params Expression<Func<TEntity, object>>[] includes)
     {
-        return await _unitOfWork.Repository<TEntity>().GetByIdAsync(id);
+        var query = _unitOfWork.Repository<TEntity, TKey>().Query();
+
+        foreach (var include in includes)
+        {
+            query = query.Include(include);
+        }
+
+        return query.FirstOrDefault(e => e.Id.Equals(id));
     }
 
+    /// <inheritdoc />
+    public async Task<TEntity> GetByIdAsync(TKey id, params Expression<Func<TEntity, object>>[] includes)
+    {
+        var query = _unitOfWork.Repository<TEntity, TKey>().Query();
+
+        foreach (var include in includes)
+        {
+            query = query.Include(include);
+        }
+
+        return await query.FirstOrDefaultAsync(e => e.Id.Equals(id));
+    }
+
+    /// <inheritdoc />
     public void Add(TEntity entity)
     {
-        _unitOfWork.Repository<TEntity>().Add(entity);
+        _unitOfWork.Repository<TEntity, TKey>().Add(entity);
         SaveChanges();
     }
 
+    /// <inheritdoc />
     public void Delete(TEntity entity)
     {
-        _unitOfWork.Repository<TEntity>().Delete(entity);
+        _unitOfWork.Repository<TEntity, TKey>().Delete(entity);
         SaveChanges();
     }
-    
+
+    /// <inheritdoc />
     public void SaveChanges()
     {
         _unitOfWork.SaveChanges();
     }
 
+    /// <inheritdoc />
     public async Task SaveChangesAsync()
     {
         await _unitOfWork.SaveChangesAsync();
     }
 
+    /// <inheritdoc />
     public void Update(TEntity entity)
     {
-        _unitOfWork.Repository<TEntity>().Update(entity);
+        _unitOfWork.Repository<TEntity, TKey>().Update(entity);
         SaveChanges();
     }
 
+    /// <inheritdoc />
     public async Task AddAsync(TEntity entity)
     {
-        _unitOfWork.Repository<TEntity>().Add(entity);
+        _unitOfWork.Repository<TEntity, TKey>().Add(entity);
         await SaveChangesAsync();
     }
 
+    /// <inheritdoc />
     public async Task UpdateAsync(TEntity entity)
     {
-        _unitOfWork.Repository<TEntity>().Update(entity);
+        _unitOfWork.Repository<TEntity, TKey>().Update(entity);
         await SaveChangesAsync();
     }
 
+    /// <inheritdoc />
     public async Task DeleteAsync(TEntity entity)
     {
-        _unitOfWork.Repository<TEntity>().Delete(entity);
+        _unitOfWork.Repository<TEntity, TKey>().Delete(entity);
         await SaveChangesAsync();
     }
 }

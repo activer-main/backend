@@ -1,11 +1,12 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using ActiverWebAPI.Interfaces.Repository;
+using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json.Serialization;
 namespace ActiverWebAPI.Models.DBEntity;
 
 [Index(nameof(Email), IsUnique = true)]
-public class User : BaseEntity
+public class User : BaseEntity, IEntity<Guid>
 {
     [Key]
     public Guid Id { get; set; }
@@ -57,7 +58,7 @@ public class User : BaseEntity
     public List<UserActivityRecord>? UserActivityRecords { get; set; }
 }
 
-public class Avatar : BaseEntity
+public class Avatar : BaseEntity, IEntity<int>
 {
     [Key]
     public int Id { get; set;}
@@ -66,11 +67,10 @@ public class Avatar : BaseEntity
 
     [Column(TypeName = "varchar(32)")]
     public string FileType { get; set; }
-
-    public byte[] FileByte { get; set; }
+    public string FilePath { get; set; }
 }
 
-public class Area : BaseEntity
+public class Area : BaseEntity, IEntity<int>
 {
     [Key]
     public int Id { get; set;}
@@ -80,7 +80,7 @@ public class Area : BaseEntity
     public List<User>? Users { get; set; }
 }
 
-public class County
+public class County: BaseEntity, IEntity<int>
 {
     public int Id { get; set; }
     public string Content { get; set; }
@@ -89,7 +89,7 @@ public class County
     public List<User>? Users { get; set; }
 }
 
-public class Profession : BaseEntity
+public class Profession : BaseEntity, IEntity<int>
 {
     [Key]
     public int Id { get; set; }
@@ -100,7 +100,7 @@ public class Profession : BaseEntity
     public List<User>? User { get; set; }
 }
 
-public class Gender : BaseEntity
+public class Gender : BaseEntity, IEntity<int>
 {
     [Key]
     public int Id { get; set; }
@@ -111,7 +111,7 @@ public class Gender : BaseEntity
     public List<User>? Users { get; set; }
 }
 
-public class SearchHistory : BaseEntity
+public class SearchHistory : BaseEntity, IEntity<int>
 {
     [Key]
     public int Id { get; set; }
@@ -124,7 +124,7 @@ public class SearchHistory : BaseEntity
 }
 
 [Index(nameof(ObjectiveName), IsUnique = true)]
-public class Objective : BaseEntity
+public class Objective : BaseEntity, IEntity<int>
 {
     public int Id { get; set; }
 
@@ -139,7 +139,7 @@ public class Objective : BaseEntity
 }
 
 [Index(nameof(UserId), nameof(ActivityId), IsUnique = true)]
-public class Comment : BaseEntity
+public class Comment : BaseEntity, IEntity<int>
 {
     public int Id { get; set; }
     [Range(0, 50)]
@@ -156,7 +156,7 @@ public class Comment : BaseEntity
 }
 
 [Index(nameof(UserId), nameof(TagId), nameof(ActivityId), IsUnique = true)]
-public class UserVoteTagInActivity : BaseEntity
+public class UserVoteTagInActivity : BaseEntity, IEntity<int>
 {
     [Key]
     public int Id { get; set; }
@@ -178,7 +178,7 @@ public class UserVoteTagInActivity : BaseEntity
 }
 
 [Index(nameof(UserId), nameof(ActivityId), IsUnique = true)]
-public class UserActivityRecord : BaseEntity
+public class UserActivityRecord : BaseEntity, IEntity<Guid>
 {
     [Key]
     public Guid Id { get; set; }
@@ -188,9 +188,9 @@ public class UserActivityRecord : BaseEntity
 
     [JsonIgnore]
     public User User { get; set; }
-    public int UserId { get; set; }
+    public Guid UserId { get; set; }
 
     [JsonIgnore]
     public Activity Activity { get; set; }
-    public int ActivityId { get; set; }
+    public Guid ActivityId { get; set; }
 }

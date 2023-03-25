@@ -23,6 +23,7 @@
 
   <ItemGroup>
     <Folder Include="Migrations\" />
+    <Folder Include="Sources\avatars\" />
   </ItemGroup>
 
 </Project>
