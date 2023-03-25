@@ -1,8 +1,6 @@
 ﻿using ActiverWebAPI.Interfaces.Repository;
 using ActiverWebAPI.Interfaces.UnitOfWork;
 using ActiverWebAPI.Models.DBEntity;
-using ActiverWebAPI.Models.DTO;
-using ActiverWebAPI.Services.UnitOfWork;
 using Microsoft.EntityFrameworkCore;
 
 namespace ActiverWebAPI.Services;
