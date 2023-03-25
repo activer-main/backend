@@ -1,6 +1,7 @@
 using ActiverWebAPI.Context;
 using ActiverWebAPI.Interfaces.Service;
 using ActiverWebAPI.Interfaces.UnitOfWork;
+using ActiverWebAPI.Profile;
 using ActiverWebAPI.Services;
 using ActiverWebAPI.Services.UnitOfWork;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -22,6 +23,9 @@ builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
 // Services
 builder.Services.AddScoped(typeof(IGenericService<>), typeof(GenericService<>));
+
+// AutoMapper
+builder.Services.AddAutoMapper(typeof(MappingProfile));
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>

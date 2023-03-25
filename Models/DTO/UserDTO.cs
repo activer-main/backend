@@ -42,6 +42,6 @@ public class UserSignInDTO
 
 public class UserDTO
 {
-    public UserInfo User { get; set; }
+    public UserInfoDTO User { get; set; }
     public TokenDTO Token { get; set; }
 }
