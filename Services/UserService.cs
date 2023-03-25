@@ -19,10 +19,10 @@ public class UserService : GenericService<User, Guid>
     }
 
     /// <summary>
-    /// 以 Email 取得 User 資訊。
+    /// 以 Email 取得 User 資訊
     /// </summary>
-    /// <param name="email">Email。</param>
-    /// <returns>對應的 User。</returns>
+    /// <param name="email">Email</param>
+    /// <returns>對應的 User</returns>
     public async Task<User?> GetUserByEmailAsync(string email)
     {
         var user = await _userRepository
@@ -32,14 +32,13 @@ public class UserService : GenericService<User, Guid>
     }
 
     /// <summary>
-    /// 以 id 產生 Avatar URL。
+    /// 以 id 產生 Avatar URL
     /// </summary>
-    /// <param name="id">User Id。</param>
+    /// <param name="id">User Id</param>
     /// <returns>Avatar URL</returns>
-    public string? GetUserAvatarURL(Guid userId)
+    public async Task<string>? GetUserAvatarURLAsync(Guid userId)
     {
-        var user = _userRepository.GetAll(user => user.Id == userId)
-            .Include(e => e.Avatar).FirstOrDefault();
+        var user = await GetByIdAsync(userId ,e => e.Avatar);
 
         if (user == null)
             return null;

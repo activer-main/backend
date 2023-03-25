@@ -12,7 +12,6 @@ public class User : BaseEntity, IEntity<Guid>
     public Guid Id { get; set; }
     public int UserRole { get; set; } = (int) Enum.UserRole.User;
 
-    [Required]
     [Column(TypeName = "varchar(512)")]
     public string Email { get; set; }
 
@@ -67,6 +66,10 @@ public class Avatar : BaseEntity, IEntity<int>
     [Column(TypeName = "varchar(32)")]
     public string FileType { get; set; }
     public string FilePath { get; set; }
+
+    [JsonIgnore]
+    [Required]
+    public User User { get; set; }
 }
 
 public class Area : BaseEntity, IEntity<int>
@@ -118,6 +121,7 @@ public class SearchHistory : BaseEntity, IEntity<int>
     public List<Tag>? Tags { get; set; }
 
     [JsonIgnore]
+    [Required]
     public User User { get; set; }
     public Guid UserId { get; set; }
 }
@@ -146,10 +150,12 @@ public class Comment : BaseEntity, IEntity<int>
     public string Content { get; set; }
 
     [JsonIgnore]
+    [Required]
     public User User { get; set; }
     public Guid UserId { get; set; }
 
     [JsonIgnore]
+    [Required]
     public Activity Activity { get; set; }
     public Guid ActivityId { get; set; }
 }
@@ -161,14 +167,17 @@ public class UserVoteTagInActivity : BaseEntity, IEntity<int>
     public int Id { get; set; }
 
     [JsonIgnore]
+    [Required]
     public User User { get; set; }
     public Guid UserId { get; set; }
 
     [JsonIgnore]
+    [Required]
     public Tag Tag { get; set; }
     public int TagId { get; set; }
 
     [JsonIgnore]
+    [Required]
     public Activity Activity { get; set; }
     public Guid ActivityId { get; set; }
 
@@ -186,10 +195,12 @@ public class UserActivityRecord : BaseEntity, IEntity<Guid>
     public string Content { get; set; }
 
     [JsonIgnore]
+    [Required]
     public User User { get; set; }
     public Guid UserId { get; set; }
 
     [JsonIgnore]
+    [Required]
     public Activity Activity { get; set; }
     public Guid ActivityId { get; set; }
 }

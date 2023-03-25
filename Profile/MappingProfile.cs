@@ -21,7 +21,7 @@ public class MappingProfile : Profile
         CreateMap<UserSignUpDTO, User>()
             .ForMember(dest => dest.HashedPassword, opt => opt.MapFrom(src => passwordHasher.HashPassword(src.Password)));
         CreateMap<User, UserInfoDTO>()
-            .ForMember(dest => dest.Avatar, opt => opt.MapFrom(src => src.Avatar == null ? null : configuration["Server:Domain"] + $"/api/user/avatar/{src.Avatar.Id}"))
+            .ForMember(dest => dest.Avatar, opt => opt.MapFrom(src => src.Avatar == null ? null : configuration["Server:Domain"] + $"api/user/avatar/{src.Avatar.Id}"))
             .ForMember(dest => dest.Area, opt => opt.MapFrom(src => src.Area == null ? null : src.Area.Content))
             .ForMember(dest => dest.Profession, opt => opt.MapFrom(src => src.Professions == null ? null : string.Join("/", src.Professions.Select(p => p.Content))))
             .ForMember(dest => dest.Gender, opt => opt.MapFrom(src => src.Gender == null ? null : src.Gender.Content));

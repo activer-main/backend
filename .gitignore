@@ -366,4 +366,4 @@ FodyWeavers.xsd
 Migrations/
 
 # Srouces
-Sources/
+wwwroot/

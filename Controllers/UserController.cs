@@ -64,7 +64,7 @@ public class UserController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<UserInfoDTO>> GetUser()
     {
-        var userId = Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+        var userId = Guid.Parse(HttpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
         var user = await _userService.GetByIdAsync(userId,
             user => user.Avatar,
             user => user.Area,
@@ -105,12 +105,11 @@ public class UserController : ControllerBase
         var passwordValid = _passwordHasher.VerifyHashedPassword(user.HashedPassword, userSignInDto.Password);
         if (!passwordValid)
         {
-            return BadRequest("帳號或密碼錯誤");
+            return Unauthorized("帳號或密碼錯誤");
         }
 
         // 轉換為 UserDTO 回傳
         var userInfoDTO = _mapper.Map<UserInfoDTO>(user);
-        userInfoDTO.Avatar = _userService.GetUserAvatarURL(user.Id);
         var TokenDTO = _tokenService.GenerateToken(user);
         var userDTO = _mapper.Map<UserDTO>(userInfoDTO);
         _mapper.Map(TokenDTO, userDTO);
@@ -139,11 +138,15 @@ public class UserController : ControllerBase
             return BadRequest("此電子郵件已被註冊");
         }
 
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
+
         var user = _mapper.Map<User>(signUpDTO);
         await _userService.AddAsync(user);
 
         var userInfoDTO = _mapper.Map<UserInfoDTO>(user);
-        userInfoDTO.Avatar = _userService.GetUserAvatarURL(user.Id);
         var TokenDTO = _tokenService.GenerateToken(user);
         var userDTO = _mapper.Map<UserDTO>(userInfoDTO);
         _mapper.Map(TokenDTO, userDTO);
@@ -171,8 +174,8 @@ public class UserController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> UploadAvatar(IFormFile file)
     {
-        var userId = Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
-        var user = await _userService.GetByIdAsync(userId);
+        var userId = Guid.Parse(HttpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+        var user = await _userService.GetByIdAsync(userId, user => user.Avatar);
 
         // 確認 User 存在
         if (user == null)
@@ -192,6 +195,17 @@ public class UserController : ControllerBase
             return BadRequest("不支援此類型檔案");
         }
 
+        // 確認是否有 Avatar
+        if (user.Avatar != null)
+        {
+            // 刪除檔案
+            var filePathToDelete = user.Avatar.FilePath;
+            if (System.IO.File.Exists(filePathToDelete))
+            {
+                System.IO.File.Delete(filePathToDelete);
+            }
+        }
+        
         // 產生檔名
         var fileName = $"{Guid.NewGuid()}{Path.GetExtension(file.FileName)}";
 
@@ -220,7 +234,7 @@ public class UserController : ControllerBase
 
         // 更新使用者資料庫中的圖片
         user.Avatar = avatar;
-        await _userService.UpdateAsync(user);
+        _userService.Update(user);
 
         return Ok("檔案上傳成功");
     }
@@ -232,6 +246,7 @@ public class UserController : ControllerBase
     /// <response code="200">成功刪除使用者頭像。</response>
     /// <response code="401">未授權的請求。</response>
     /// <response code="404">找不到指定的使用者。</response>
+    [Authorize]
     [HttpDelete("avatar")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -300,6 +315,28 @@ public class UserController : ControllerBase
         return new FileStreamResult(fileStream, contentType);
     }
 
+    /// <summary>
+    /// 刪除使用者
+    /// </summary>
+    /// <remarks>刪除指定使用者</remarks>
+    /// <param name="id">使用者ID</param>
+    /// <returns>刪除是否成功</returns>
+    /// <response code="200">成功刪除使用者</response>
+    /// <response code="404">找不到指定的使用者</response>
+    [Authorize]
+    [HttpDelete("{id}")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> DeleteUser(Guid id)
+    {
+        var user = await _userService.GetByIdAsync(id);
+        if (user == null)
+        {
+            return NotFound();
+        }
+        await _userService.DeleteAsync(user);
+        return Ok();
+    }
 
     private static bool IsImage(IFormFile file)
     {
