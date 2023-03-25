@@ -3,5 +3,5 @@
 public class TokenDTO
 {
     public string AccessToken { get;set; }
-    public int ExpireIn { get;set; }
+    public DateTime ExpireIn { get;set; }
 }

@@ -4,8 +4,10 @@ using System.Security.Claims;
 using System.Text;
 using ActiverWebAPI.Enum;
 using ActiverWebAPI.Models.DBEntity;
+using ActiverWebAPI.Models.DTO;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
+
 public class TokenService
 {
     private readonly IConfiguration _config;
@@ -15,7 +17,7 @@ public class TokenService
         _config = config;
     }
 
-    public string GenerateToken(User user)
+    public TokenDTO GenerateToken(User user)
     {
         var claims = new[]
         {
@@ -24,17 +26,22 @@ public class TokenService
             new Claim(ClaimTypes.Role, ((UserRole) user.UserRole).ToString())
         };
 
+        var expiresIn = 7;
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["Jwt:SecretKey"]));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-
+        var expiresDate = DateTime.UtcNow.AddDays(expiresIn);
         var token = new JwtSecurityToken(
             issuer: _config["Jwt:Issuer"],
             audience: _config["Jwt:Audience"],
             claims: claims,
-            expires: DateTime.UtcNow.AddDays(7),
+            expires: expiresDate,
             signingCredentials: creds
         );
 
-        return new JwtSecurityTokenHandler().WriteToken(token);
+        return new TokenDTO
+        {
+            AccessToken = new JwtSecurityTokenHandler().WriteToken(token),
+            ExpireIn = expiresDate
+        };   
     }
 }

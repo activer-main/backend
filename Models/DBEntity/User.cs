@@ -25,7 +25,6 @@ public class User : BaseEntity, IEntity<Guid>
     public string? RealName { get; set; }
 
     [Required]
-    [Column(TypeName = "char(62)")]
     public string HashedPassword { get; set; }
 
     [Column(TypeName = "varchar(64)")]
@@ -33,15 +32,15 @@ public class User : BaseEntity, IEntity<Guid>
     public DateTime? BrithDay { get; set; }
 
     public Avatar? Avatar { get; set; }
-    public int AvatarId { get; set; }
+    public int? AvatarId { get; set; }
 
     public Area? Area { get; set; }
-    public int AreaId { get; set; }
+    public int? AreaId { get; set; }
 
     public List<Profession>? Professions { get; set; }
 
     public Gender? Gender { get; set; }
-    public int GenderId { get; set; }
+    public int? GenderId { get; set; }
 
     public List<SearchHistory>? SearchHistory { get; set; }
 

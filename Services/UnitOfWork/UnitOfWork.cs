@@ -33,14 +33,20 @@ public class UnitOfWork : IUnitOfWork
     /// <returns>Entity的Repository</returns>
     public IRepository<TEntity, TKey> Repository<TEntity, TKey>() where TEntity : class, IEntity<TKey>
     {
-        if (_repositories.ContainsKey(typeof(TEntity)))
+        if (_repositories == null)
         {
-            return (IRepository<TEntity, TKey>)_repositories[typeof(TEntity)];
+            _repositories = new Hashtable();
         }
 
-        var repository = new GenericRepository<TEntity, TKey>(_context);
-        _repositories.Add(typeof(TEntity), repository);
-        return repository;
+        var entityType = typeof(TEntity);
+        if (!_repositories.ContainsKey(entityType))
+        {
+            var repositoryType = typeof(GenericRepository<,>).MakeGenericType(entityType, typeof(TKey));
+            var repository = Activator.CreateInstance(repositoryType, _context);
+            _repositories.Add(entityType, repository);
+        }
+
+        return (IRepository<TEntity, TKey>)_repositories[entityType];
     }
 
     /// <summary>
@@ -76,10 +82,11 @@ public class UnitOfWork : IUnitOfWork
     {
         if (!_disposed)
         {
-            if (disposing)
+            foreach (var repository in _repositories.Values.OfType<IDisposable>())
             {
-                _context.Dispose();
+                repository.Dispose();
             }
+            _context.Dispose();
         }
 
         _disposed = true;

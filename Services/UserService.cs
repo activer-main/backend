@@ -36,7 +36,7 @@ public class UserService : GenericService<User, Guid>
     /// </summary>
     /// <param name="id">User Id。</param>
     /// <returns>Avatar URL</returns>
-    public string GetUserAvatarURL(Guid userId)
+    public string? GetUserAvatarURL(Guid userId)
     {
         var user = _userRepository.GetAll(user => user.Id == userId)
             .Include(e => e.Avatar).FirstOrDefault();
