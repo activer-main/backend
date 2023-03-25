@@ -9,6 +9,11 @@ public interface IUnitOfWork : IDisposable
     void SaveChanges();
 
     /// <summary>
+    /// 非同步儲存所有異動
+    /// </summary>
+    Task SaveChangesAsync();
+
+    /// <summary>
     /// 取得某一個Entity的Repository。
     /// 如果沒有取過，會initialise一個
     /// 如果有就取得之前initialise的那個。
