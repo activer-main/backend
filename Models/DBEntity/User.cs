@@ -54,6 +54,7 @@ public class User : BaseEntity, IEntity<Guid>
     public List<BranchStatus>? BranchStatus { get; set; }
     
     public List<UserActivityRecord>? UserActivityRecords { get; set; }
+    public List<UserEmailVerification>? UserEmailVerifications { get; set; } = new List<UserEmailVerification>();
 }
 
 public class Avatar : BaseEntity, IEntity<int>
@@ -203,4 +204,18 @@ public class UserActivityRecord : BaseEntity, IEntity<Guid>
     [Required]
     public Activity Activity { get; set; }
     public Guid ActivityId { get; set; }
+}
+
+[Index(nameof(UserId), nameof(VerificationCode), IsUnique = true)]
+public class UserEmailVerification
+{
+    public int Id { get; set; }
+
+    public Guid UserId { get; set; }
+    [Required]
+    public User User { get; set; }
+
+    [Column(TypeName = "char(6)")]
+    public string VerificationCode { get; set; }
+    public DateTime ExpiresTime { get; set; }
 }

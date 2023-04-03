@@ -5,13 +5,11 @@ using ActiverWebAPI.Profile;
 using ActiverWebAPI.Services;
 using ActiverWebAPI.Services.Middlewares;
 using ActiverWebAPI.Services.UnitOfWork;
-using AutoMapper;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Text;
-using Microsoft.Extensions.DependencyInjection;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -47,14 +45,16 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
+
 builder.Services.AddDbContext<ActiverDbContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("DevConnection")));
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
-
 // Services
 builder.Services.AddScoped<UserService>();
 builder.Services.AddScoped(typeof(IGenericService<,>), typeof(GenericService<,>));
 builder.Services.AddScoped<TokenService>();
 builder.Services.AddSingleton<IPasswordHasher, PasswordHasher>();
+builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.AddTransient<IMiddleware, EmailVerificationMiddleware>();
 
 // AutoMapper
 builder.Services.AddAutoMapper(

@@ -5,11 +5,11 @@ using ActiverWebAPI.Services;
 using ActiverWebAPI.Services.Middlewares;
 using AutoMapper;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 
 namespace ActiverWebAPI.Controllers;
-
 
 [ApiController]
 [Route("api/[controller]")]
@@ -18,6 +18,7 @@ public class UserController : ControllerBase
     private readonly UserService _userService;
     private readonly TokenService _tokenService;
     private readonly IPasswordHasher _passwordHasher;
+    private readonly IEmailService _emailService;
     private readonly IMapper _mapper;
     private readonly IWebHostEnvironment _env;
 
@@ -25,17 +26,19 @@ public class UserController : ControllerBase
         IMapper mapper,
         IWebHostEnvironment env,
         TokenService tokenService,
-        IPasswordHasher passwordHasher)
+        IPasswordHasher passwordHasher,
+        IEmailService emailService)
     {
         _userService = userService;
         _mapper = mapper;
         _env = env;
         _tokenService = tokenService;
         _passwordHasher = passwordHasher;
+        _emailService = emailService;
     }
 
     /// <summary>
-    /// 取得擁有管理員或內部使用者角色的使用者資訊清單。
+    /// 使用者資訊清單。
     /// </summary>
     /// <remarks>
     /// 此端點需要使用者具備管理員或內部使用者角色才能存取。
@@ -89,13 +92,14 @@ public class UserController : ControllerBase
     /// </summary>
     /// <param name="userSignInDto">使用者登入資訊</param>
     /// <returns>使用者資訊與權杖</returns>
+    [AllowAnonymous]
     [HttpPost("login")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<UserDTO>> Login(UserSignInDTO userSignInDto)
     {
         // 從資料庫中尋找使用者
-        var user = await _userService.GetUserByEmailAsync(userSignInDto.Email);
+        var user = await _userService.GetUserByEmailAsync(userSignInDto.Email.ToLower());
         if (user == null)
         {
             return BadRequest("帳號或密碼錯誤");
@@ -133,7 +137,7 @@ public class UserController : ControllerBase
     [ProducesResponseType(typeof(string), 400)]
     public async Task<ActionResult<UserDTO>> SignUp([FromBody] UserSignUpDTO signUpDTO)
     {
-        if (await _userService.GetUserByEmailAsync(signUpDTO.Email) != null)
+        if (await _userService.GetUserByEmailAsync(signUpDTO.Email.ToLower()) != null)
         {
             return BadRequest("此電子郵件已被註冊");
         }
@@ -145,6 +149,12 @@ public class UserController : ControllerBase
 
         var user = _mapper.Map<User>(signUpDTO);
         await _userService.AddAsync(user);
+
+        // 發送驗證電子郵件
+        var token = await _userService.GenerateEmailConfirmationTokenAsync(user);
+        var subject = "[noreply] Activer 註冊驗證碼";
+        var message = $"<h1>您的驗證碼是: {token} ，此驗證碼於10分鐘後失效</h1>";
+        await _emailService.SendEmailAsync(user.Email, subject, message);
 
         var userInfoDTO = _mapper.Map<UserInfoDTO>(user);
         var TokenDTO = _tokenService.GenerateToken(user);
@@ -167,6 +177,7 @@ public class UserController : ControllerBase
     /// <response code="401">未授權的存取</response>
     /// <response code="404">找不到使用者</response>
     [Authorize]
+    [MiddlewareFilter(typeof(EmailVerificationMiddleware))]
     [HttpPost("avatar")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -240,13 +251,14 @@ public class UserController : ControllerBase
     }
 
     /// <summary>
-    /// 刪除使用者頭像。
+    /// 刪除使用者頭像
     /// </summary>
-    /// <returns>回傳是否刪除成功的訊息。</returns>
-    /// <response code="200">成功刪除使用者頭像。</response>
-    /// <response code="401">未授權的請求。</response>
-    /// <response code="404">找不到指定的使用者。</response>
+    /// <returns>回傳是否刪除成功的訊息</returns>
+    /// <response code="200">成功刪除使用者頭像</response>
+    /// <response code="401">未授權的請求</response>
+    /// <response code="404">找不到指定的使用者</response>
     [Authorize]
+    [MiddlewareFilter(typeof(EmailVerificationMiddleware))]
     [HttpDelete("avatar")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -283,10 +295,10 @@ public class UserController : ControllerBase
     }
 
     /// <summary>
-    /// 取得使用者的頭像。
+    /// 取得使用者的頭像
     /// </summary>
-    /// <param name="userId">使用者 ID。</param>
-    /// <returns>頭像檔案。</returns>
+    /// <param name="userId">使用者 ID</param>
+    /// <returns>頭像檔案</returns>
     [AllowAnonymous]
     [HttpGet("avatar/{userId}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
@@ -318,12 +330,14 @@ public class UserController : ControllerBase
     /// <summary>
     /// 刪除使用者
     /// </summary>
-    /// <remarks>刪除指定使用者</remarks>
+    /// <remarks>
+    /// 此端點需要使用者具備管理員或內部使用者角色才能存取
+    /// </remarks>
     /// <param name="id">使用者ID</param>
     /// <returns>刪除是否成功</returns>
     /// <response code="200">成功刪除使用者</response>
     /// <response code="404">找不到指定的使用者</response>
-    [Authorize]
+    [Authorize(Roles = "Admin, InternalUser")]
     [HttpDelete("{id}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -335,6 +349,80 @@ public class UserController : ControllerBase
             return NotFound();
         }
         await _userService.DeleteAsync(user);
+        return Ok();
+    }
+
+    /// <summary>
+    /// 驗證 email
+    /// </summary>
+    /// <param name="userId">使用者 ID</param>
+    /// <param name="code">驗證碼</param>
+    /// <returns>ActionResult</returns>
+    [HttpGet("verifyEmail")]
+    [Authorize]
+    [ProducesResponseType(typeof(string), 200)]
+    [ProducesResponseType(typeof(string), 400)]
+    [ProducesResponseType(typeof(string), 401)]
+    [Produces("application/json")]
+    public async Task<ActionResult> VerifyEmail(string verifyCode)
+    {
+        var userId = HttpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        // 檢查參數是否為 null 或空字串
+        if (string.IsNullOrEmpty(userId) || string.IsNullOrEmpty(verifyCode))
+        {
+            return BadRequest();
+        }
+
+        // 驗證電子郵件驗證碼
+        var user = await _userService.GetByIdAsync(Guid.Parse(userId), 
+            user => user.UserEmailVerifications);
+        if (user == null)
+        {
+            return Unauthorized();
+        }
+
+        var result = _userService.VerifyVerificationCode(user, verifyCode);
+        if (!result)
+        {
+            return BadRequest("驗證碼不正確或已失效");
+        }
+        user.Verified = true;
+        await _userService.UpdateAsync(user);
+        return Ok("電子郵件驗證成功");
+    }
+
+    /// <summary>
+    /// 重新發送驗證郵件
+    /// </summary>
+    /// <remarks>
+    /// 需要授權
+    /// </remarks>
+    /// <returns>發送成功回傳 200，授權失敗回傳 401</returns>
+    [Authorize]
+    [HttpGet("resendVerifyEmail")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<ActionResult> ResendVerifyEmail()
+    {
+        var userId = HttpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        // 檢查參數是否為 null 或空字串
+        if (string.IsNullOrEmpty(userId))
+        {
+            return BadRequest();
+        }
+
+        // 驗證電子郵件驗證碼
+        var user = await _userService.GetByIdAsync(Guid.Parse(userId));
+        if (user == null)
+        {
+            return Unauthorized();
+        }
+
+        // 發送驗證電子郵件
+        var token = await _userService.GenerateEmailConfirmationTokenAsync(user);
+        var subject = "[noreply] Activer 註冊驗證碼";
+        var message = $"<h1>您的驗證碼是: {token} ，此驗證碼於10分鐘後失效</h1>";
+        await _emailService.SendEmailAsync(user.Email, subject, message);
         return Ok();
     }
 

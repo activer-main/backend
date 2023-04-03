@@ -48,4 +48,40 @@ public class UserService : GenericService<User, Guid>
 
         return _configuration["Server:Domain"] + $"/api/user/avatar/{user.Avatar.Id}";
     }
+
+    public bool VerifyVerificationCode(User User, string token)
+    {
+        if (User.UserEmailVerifications == null)
+            return false;
+        return User.UserEmailVerifications.Any(e => e.VerificationCode == token && e.ExpiresTime > DateTime.UtcNow);
+    }
+
+    public async Task<string> GenerateEmailConfirmationTokenAsync(User user)
+    {
+        Random random = new();
+        var length = 6;
+        const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+        string token;
+
+        do
+        {
+            token = new string(Enumerable.Repeat(chars, length).Select(s => s[random.Next(s.Length)]).ToArray());
+        } while (!IsVerificationCodeAvailable(user, token));
+
+        user.UserEmailVerifications ??= new List<UserEmailVerification>() { };
+        user.UserEmailVerifications.Add(new UserEmailVerification
+        {
+            VerificationCode = token,
+            ExpiresTime = DateTime.UtcNow.AddMinutes(10),
+        });
+        await UpdateAsync(user);
+        return token;
+    }
+
+    private static bool IsVerificationCodeAvailable(User User, string token)
+    {
+        if (User.UserEmailVerifications == null)
+            return true;
+        return !User.UserEmailVerifications.Any(e => e.VerificationCode == token);
+    }
 }
