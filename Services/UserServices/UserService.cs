@@ -4,7 +4,7 @@ using ActiverWebAPI.Models.DBEntity;
 using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
 
-namespace ActiverWebAPI.Services;
+namespace ActiverWebAPI.Services.UserServices;
 
 public class UserService : GenericService<User, Guid>
 {
@@ -41,7 +41,7 @@ public class UserService : GenericService<User, Guid>
     /// <returns>Avatar URL</returns>
     public async Task<string>? GetUserAvatarURLAsync(Guid userId)
     {
-        var user = await GetByIdAsync(userId ,e => e.Avatar);
+        var user = await GetByIdAsync(userId, e => e.Avatar);
 
         if (user == null)
             return null;

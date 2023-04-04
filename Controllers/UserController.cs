@@ -1,13 +1,18 @@
-﻿using ActiverWebAPI.Interfaces.Service;
+﻿using ActiverWebAPI.Enums;
+using ActiverWebAPI.Interfaces.Service;
 using ActiverWebAPI.Models.DBEntity;
 using ActiverWebAPI.Models.DTO;
-using ActiverWebAPI.Services;
 using ActiverWebAPI.Services.Middlewares;
+using ActiverWebAPI.Services.UserServices;
 using AutoMapper;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.IdentityModel.Tokens;
+using System;
+using System.Diagnostics.Metrics;
+using System.Globalization;
 using System.Security.Claims;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace ActiverWebAPI.Controllers;
 
@@ -19,6 +24,9 @@ public class UserController : ControllerBase
     private readonly TokenService _tokenService;
     private readonly IPasswordHasher _passwordHasher;
     private readonly IEmailService _emailService;
+    private readonly AreaService _areaService;
+    private readonly ProfessionService _professionService;
+    private readonly CountyService _countyService;
     private readonly IMapper _mapper;
     private readonly IWebHostEnvironment _env;
 
@@ -27,7 +35,10 @@ public class UserController : ControllerBase
         IWebHostEnvironment env,
         TokenService tokenService,
         IPasswordHasher passwordHasher,
-        IEmailService emailService)
+        IEmailService emailService,
+        AreaService areaService,
+        ProfessionService professionService,
+        CountyService countyService)
     {
         _userService = userService;
         _mapper = mapper;
@@ -35,13 +46,16 @@ public class UserController : ControllerBase
         _tokenService = tokenService;
         _passwordHasher = passwordHasher;
         _emailService = emailService;
+        _areaService = areaService;
+        _professionService = professionService;
+        _countyService = countyService;
     }
 
     /// <summary>
-    /// 使用者資訊清單。
+    /// 使用者資訊清單
     /// </summary>
     /// <remarks>
-    /// 此端點需要使用者具備管理員或內部使用者角色才能存取。
+    /// 此端點需要使用者具備管理員或內部使用者角色才能存取
     /// </remarks>
     /// <returns>使用者資訊清單。</returns>
     [Authorize(Roles = "Admin, InternalUser")]
@@ -71,7 +85,6 @@ public class UserController : ControllerBase
         var user = await _userService.GetByIdAsync(userId,
             user => user.Avatar,
             user => user.Area,
-            user => user.Gender,
             user => user.Professions,
             user => user.SearchHistory,
             user => user.TagStorage,
@@ -83,6 +96,112 @@ public class UserController : ControllerBase
             return NotFound("使用者不存在");
         }
 
+        var userInfoDTO = _mapper.Map<UserInfoDTO>(user);
+        return Ok(userInfoDTO);
+    }
+
+    /// <summary>
+    /// 更新使用者部分資訊
+    /// </summary>
+    /// <remarks>
+    /// 修改欄位限制為：username, gender, birthday, profession, phone, county, area
+    /// </remarks>
+    /// <param name="patchDoc">包含要更新的使用者部分資訊</param>
+    /// <returns>更新後的使用者資訊</returns>
+    /// <response code="200">更新成功，回傳更新後的使用者資訊</response>
+    /// <response code="400">請求資料無效，回傳錯誤訊息</response>
+    /// <response code="401">未授權，回傳錯誤訊息</response>
+    [Authorize]
+    [HttpPatch]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<ActionResult<UserInfoDTO>> UpdateUser([FromBody] UserUpdateDTO patchDoc)
+    {
+        var userId = HttpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrEmpty(userId))
+        {
+            return BadRequest();
+        }
+
+        var user = await _userService.GetByIdAsync(Guid.Parse(userId));
+        if (user == null)
+        {
+            return Unauthorized();
+        }
+
+        // 更新 Username
+        if (!string.IsNullOrEmpty(patchDoc.Username))
+        {
+            user.NickName = patchDoc.Username;
+        }
+
+        // 更新性別
+        if (!string.IsNullOrEmpty(patchDoc.Gender))
+        {
+            if (!Enum.TryParse(patchDoc.Gender, true, out UserGender gender))
+            {
+                return BadRequest("使用者的性別未定義，請聯絡客服");
+            }
+            user.Gender = (int)gender;
+        }
+
+        // 更新生日
+        if (patchDoc.Birthday != null)
+        {
+            user.BrithDay = DateTime.ParseExact(patchDoc.Birthday, "yyyy-MM-dd", CultureInfo.InvariantCulture);
+        }
+
+        // 更新職業
+        if (!patchDoc.Professions.IsNullOrEmpty())
+        {
+            var professionList = patchDoc.Professions.Where(s => !string.IsNullOrWhiteSpace(s)).ToList();
+            List<Profession> newProfessions = new ();
+            foreach(var professionName in professionList)
+            {
+                var profession = await _professionService.GetByNameAsync(professionName);
+                if (profession != null) {
+                    newProfessions.Add(profession);
+                }
+                else
+                {
+                    newProfessions.Add(new Profession
+                    {
+                        Content = professionName
+                    });
+                }
+            }
+            user.Professions = newProfessions;
+        }
+
+        // 更新手機
+        if (!string.IsNullOrEmpty(patchDoc.Phone))
+        {
+            user.Phone = patchDoc.Phone;
+        }
+
+        // 更新國家
+        if (!string.IsNullOrEmpty(patchDoc.County))
+        {
+            var county = await _countyService.GetByNameAsync(patchDoc.County);
+            if (county == null)
+            {
+                return BadRequest($"County: {patchDoc.County} 不在選項中");
+            }
+        }   
+
+        // 更新地區
+        if (!string.IsNullOrEmpty(patchDoc.Area))
+        {
+            var area = await _areaService.GetByNameAsync(patchDoc.Area);
+            if (area != null)
+                user.Area = area;
+            else user.Area = new Area() { 
+                Content = patchDoc.Area
+            };
+        }
+
+        await _userService.UpdateAsync(user);
         var userInfoDTO = _mapper.Map<UserInfoDTO>(user);
         return Ok(userInfoDTO);
     }
@@ -101,9 +220,7 @@ public class UserController : ControllerBase
         // 從資料庫中尋找使用者
         var user = await _userService.GetUserByEmailAsync(userSignInDto.Email.ToLower(),
             user => user.Avatar,
-            user => user.Gender,
             user => user.Professions,
-            user => user.Phone,
             user => user.County,
             user => user.Area);
         if (user == null)
@@ -431,7 +548,6 @@ public class UserController : ControllerBase
         await _emailService.SendEmailAsync(user.Email, subject, message);
         return Ok();
     }
-
 
 
     private static bool IsImage(IFormFile file)

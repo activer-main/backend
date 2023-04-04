@@ -1,4 +1,4 @@
-﻿namespace ActiverWebAPI.Enum;
+﻿namespace ActiverWebAPI.Enums;
 
 public enum UserRole
 {

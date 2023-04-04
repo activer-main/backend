@@ -5,6 +5,7 @@ using ActiverWebAPI.Models.DTO;
 using AutoMapper;
 using ActiverWebAPI.Interfaces.Service;
 using Microsoft.Extensions.Configuration;
+using ActiverWebAPI.Enums;
 
 public class MappingProfile : Profile
 {
@@ -23,10 +24,11 @@ public class MappingProfile : Profile
         CreateMap<User, UserInfoDTO>()
             .ForMember(dest => dest.Avatar, opt => opt.MapFrom(src => src.Avatar == null ? null : configuration["Server:Domain"] + $"api/user/avatar/{src.Avatar.Id}"))
             .ForMember(dest => dest.Area, opt => opt.MapFrom(src => src.Area == null ? null : src.Area.Content))
-            .ForMember(dest => dest.Profession, opt => opt.MapFrom(src => src.Professions == null ? null : string.Join("/", src.Professions.Select(p => p.Content))))
+            .ForMember(dest => dest.Professions, opt => opt.MapFrom(src => src.Professions == null ? null : src.Professions.Select(x => new UserProfessionDTO { Id = x.Id, Profession = x.Content }).ToList()))
             .ForMember(dest => dest.County, opt => opt.MapFrom(src => src.County == null ? null : src.County.Content))
-            .ForMember(dest => dest.Gender, opt => opt.MapFrom(src => src.Gender == null ? null : src.Gender.Content))
-            .ForMember(dest => dest.Username, opt => opt.MapFrom(src => src.NickName ));
+            .ForMember(dest => dest.Username, opt => opt.MapFrom(src => src.NickName))
+            .ForMember(dest => dest.EmailVerifed, opt => opt.MapFrom(src => src.Verified))
+            .ForMember(dest => dest.Gender, opt => opt.MapFrom(src => ((UserGender)src.Gender).ToString()))
+            .ForMember(dest => dest.Birthday, opt => opt.MapFrom(src => src.BrithDay == null ? null : src.BrithDay.Value.ToShortDateString()));
     }
- 
 }

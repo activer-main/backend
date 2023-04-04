@@ -2,7 +2,7 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
-using ActiverWebAPI.Enum;
+using ActiverWebAPI.Enums;
 using ActiverWebAPI.Models.DBEntity;
 using ActiverWebAPI.Models.DTO;
 using Microsoft.Extensions.Configuration;

@@ -10,8 +10,8 @@ public class User : BaseEntity, IEntity<Guid>
 {
     [Key]
     public Guid Id { get; set; }
-    public int UserRole { get; set; } = (int) Enum.UserRole.User;
-
+    public int UserRole { get; set; } = (int) Enums.UserRole.User;
+   
     [Column(TypeName = "varchar(512)")]
     public string Email { get; set; }
 
@@ -23,11 +23,15 @@ public class User : BaseEntity, IEntity<Guid>
     [MaxLength(124)]
     public string? RealName { get; set; }
 
+    public int Gender { get; set; } = (int) Enums.UserGender.Undefined;
+
     [Required]
     public string HashedPassword { get; set; }
 
     [Column(TypeName = "varchar(64)")]
     public string? Phone { get; set; }
+
+    [DataType(DataType.Date)]
     public DateTime? BrithDay { get; set; }
 
     public Avatar? Avatar { get; set; }
@@ -37,9 +41,6 @@ public class User : BaseEntity, IEntity<Guid>
     public int? AreaId { get; set; }
 
     public List<Profession>? Professions { get; set; }
-
-    public Gender? Gender { get; set; }
-    public int? GenderId { get; set; }
 
     public County? County { get; set; }
     public int? CountyId { get; set; }
@@ -104,17 +105,6 @@ public class Profession : BaseEntity, IEntity<int>
 
     [JsonIgnore]
     public List<User>? User { get; set; }
-}
-
-public class Gender : BaseEntity, IEntity<int>
-{
-    [Key]
-    public int Id { get; set; }
-    [Column(TypeName = "nvarchar(256)")]
-    public string Content { get; set; }
-
-    [JsonIgnore]
-    public List<User>? Users { get; set; }
 }
 
 public class SearchHistory : BaseEntity, IEntity<int>

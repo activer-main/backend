@@ -1,4 +1,5 @@
 ﻿using System.Security.Claims;
+using ActiverWebAPI.Services.UserServices;
 
 namespace ActiverWebAPI.Services.Middlewares;
 
