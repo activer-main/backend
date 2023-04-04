@@ -8,11 +8,8 @@ using AutoMapper;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
-using System;
-using System.Diagnostics.Metrics;
 using System.Globalization;
 using System.Security.Claims;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace ActiverWebAPI.Controllers;
 

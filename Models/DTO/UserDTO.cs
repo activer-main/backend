@@ -1,6 +1,4 @@
-﻿using ActiverWebAPI.Models.DBEntity;
-
-namespace ActiverWebAPI.Models.DTO;
+﻿namespace ActiverWebAPI.Models.DTO;
 
 public class UserInfoDTO
 {
