@@ -99,7 +99,13 @@ public class UserController : ControllerBase
     public async Task<ActionResult<UserDTO>> Login(UserSignInDTO userSignInDto)
     {
         // 從資料庫中尋找使用者
-        var user = await _userService.GetUserByEmailAsync(userSignInDto.Email.ToLower());
+        var user = await _userService.GetUserByEmailAsync(userSignInDto.Email.ToLower(),
+            user => user.Avatar,
+            user => user.Gender,
+            user => user.Professions,
+            user => user.Phone,
+            user => user.County,
+            user => user.Area);
         if (user == null)
         {
             return BadRequest("帳號或密碼錯誤");
@@ -425,6 +431,8 @@ public class UserController : ControllerBase
         await _emailService.SendEmailAsync(user.Email, subject, message);
         return Ok();
     }
+
+
 
     private static bool IsImage(IFormFile file)
     {

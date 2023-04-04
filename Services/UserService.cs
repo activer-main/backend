@@ -2,6 +2,7 @@
 using ActiverWebAPI.Interfaces.UnitOfWork;
 using ActiverWebAPI.Models.DBEntity;
 using Microsoft.EntityFrameworkCore;
+using System.Linq.Expressions;
 
 namespace ActiverWebAPI.Services;
 
@@ -23,12 +24,14 @@ public class UserService : GenericService<User, Guid>
     /// </summary>
     /// <param name="email">Email</param>
     /// <returns>對應的 User</returns>
-    public async Task<User?> GetUserByEmailAsync(string email)
+    public async Task<User?> GetUserByEmailAsync(string email, params Expression<Func<User, object>>[] includes)
     {
-        var user = await _userRepository
-            .GetAll(e => e.Email == email)
-            .FirstOrDefaultAsync();
-        return user;
+        var query = _userRepository.Query();
+        foreach (var include in includes)
+        {
+            query = query.Include(include);
+        }
+        return await query.FirstOrDefaultAsync(e => e.Email == email);
     }
 
     /// <summary>

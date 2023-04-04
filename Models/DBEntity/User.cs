@@ -41,6 +41,9 @@ public class User : BaseEntity, IEntity<Guid>
     public Gender? Gender { get; set; }
     public int? GenderId { get; set; }
 
+    public County? County { get; set; }
+    public int? CountyId { get; set; }
+
     public List<SearchHistory>? SearchHistory { get; set; }
 
     public List<Objective>? ObjectiveTags { get; set; }

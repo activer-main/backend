@@ -24,6 +24,9 @@ public class MappingProfile : Profile
             .ForMember(dest => dest.Avatar, opt => opt.MapFrom(src => src.Avatar == null ? null : configuration["Server:Domain"] + $"api/user/avatar/{src.Avatar.Id}"))
             .ForMember(dest => dest.Area, opt => opt.MapFrom(src => src.Area == null ? null : src.Area.Content))
             .ForMember(dest => dest.Profession, opt => opt.MapFrom(src => src.Professions == null ? null : string.Join("/", src.Professions.Select(p => p.Content))))
-            .ForMember(dest => dest.Gender, opt => opt.MapFrom(src => src.Gender == null ? null : src.Gender.Content));
+            .ForMember(dest => dest.County, opt => opt.MapFrom(src => src.County == null ? null : src.County.Content))
+            .ForMember(dest => dest.Gender, opt => opt.MapFrom(src => src.Gender == null ? null : src.Gender.Content))
+            .ForMember(dest => dest.Username, opt => opt.MapFrom(src => src.NickName ));
     }
+ 
 }
