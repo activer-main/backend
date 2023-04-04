@@ -20,19 +20,31 @@ public class GenericService<TEntity, TKey> : IGenericService<TEntity, TKey> wher
     }
 
     /// <inheritdoc />
-    public IQueryable<TEntity> GetAll(Expression<Func<TEntity, bool>> predicate)
+    public IQueryable<TEntity> GetAll(Expression<Func<TEntity, bool>> predicate, params Expression<Func<TEntity, object>>[] includes)
     {
-        return _unitOfWork.Repository<TEntity, TKey>().GetAll(predicate);
+        var query = _unitOfWork.Repository<TEntity, TKey>().Query();
+
+        foreach (var include in includes)
+        {
+            query = query.Include(include);
+        }
+        return query.Where(predicate);
     }
 
     /// <inheritdoc />
-    public IQueryable<TEntity> GetAll()
+    public IQueryable<TEntity> GetAll(params Expression<Func<TEntity, object>>[] includes)
     {
-        return _unitOfWork.Repository<TEntity, TKey>().GetAll();
+        var query = _unitOfWork.Repository<TEntity, TKey>().Query();
+
+        foreach (var include in includes)
+        {
+            query = query.Include(include);
+        }
+        return query;
     }
 
     /// <inheritdoc />
-    public TEntity GetById(TKey id, params Expression<Func<TEntity, object>>[] includes)
+    public TEntity? GetById(TKey id, params Expression<Func<TEntity, object>>[] includes)
     {
         var query = _unitOfWork.Repository<TEntity, TKey>().Query();
 
@@ -45,7 +57,7 @@ public class GenericService<TEntity, TKey> : IGenericService<TEntity, TKey> wher
     }
 
     /// <inheritdoc />
-    public async Task<TEntity> GetByIdAsync(TKey id, params Expression<Func<TEntity, object>>[] includes)
+    public async Task<TEntity>? GetByIdAsync(TKey id, params Expression<Func<TEntity, object>>[] includes)
     {
         var query = _unitOfWork.Repository<TEntity, TKey>().Query();
 

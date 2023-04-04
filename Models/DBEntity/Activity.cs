@@ -12,7 +12,7 @@ public class Activity : BaseEntity, IEntity<Guid>
     public string Title { get; set; }
     public string? Subtitle { get; set; }
 
-    [Column(TypeName="text"), Required]
+    [Column(TypeName="text")]
     public string Content { get; set; }
     public int ActivityClickedCount { get; set; } = 0;
     public List<Branch> Branches { get; set; }

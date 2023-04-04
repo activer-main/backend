@@ -13,13 +13,13 @@ public interface IGenericService<TEntity, TKey> where TEntity : class, IEntity<T
     /// 取得所有 TEntity
     /// </summary>
     /// <returns>所有 TEntity 的 List</returns>
-    IQueryable<TEntity> GetAll(Expression<Func<TEntity, bool>> predicate) ;
+    IQueryable<TEntity> GetAll(Expression<Func<TEntity, bool>> predicate, params Expression<Func<TEntity, object>>[] includes) ;
 
     /// <summary>
     /// 取得所有 TEntity
     /// </summary>
     /// <returns>所有 TEntity 的 List</returns>
-    IQueryable<TEntity> GetAll();
+    IQueryable<TEntity> GetAll(params Expression<Func<TEntity, object>>[] includes);
 
     /// <summary>
     /// 根據主鍵 ID 取得實體資料。
@@ -28,7 +28,7 @@ public interface IGenericService<TEntity, TKey> where TEntity : class, IEntity<T
     /// <param name="id">主鍵值。</param>
     /// <param name="includes">包含導覽屬性的表達式。</param>
     /// <returns>符合指定主鍵 ID 的實體資料。</returns>
-    TEntity GetById(TKey id, params Expression<Func<TEntity, object>>[] includes);
+    TEntity? GetById(TKey id, params Expression<Func<TEntity, object>>[] includes);
 
     /// <summary>
     /// 新增 TEntity
@@ -54,7 +54,7 @@ public interface IGenericService<TEntity, TKey> where TEntity : class, IEntity<T
     /// <typeparam name="TKey">實體 ID 的類型</typeparam>
     /// <param name="id">實體 ID</param>
     /// <returns>包含指定實體的 Task 物件</returns>
-    Task<TEntity> GetByIdAsync(TKey id, params Expression<Func<TEntity, object>>[] includes);
+    Task<TEntity>? GetByIdAsync(TKey id, params Expression<Func<TEntity, object>>[] includes);
 
     /// <summary>
     /// 新增 TEntity
