@@ -1,6 +1,7 @@
 ﻿using ActiverWebAPI.Interfaces.Repository;
 using ActiverWebAPI.Interfaces.Service;
 using ActiverWebAPI.Interfaces.UnitOfWork;
+using ActiverWebAPI.Services.UnitOfWork;
 using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
 
@@ -20,15 +21,51 @@ public class GenericService<TEntity, TKey> : IGenericService<TEntity, TKey> wher
     }
 
     /// <inheritdoc />
-    public IQueryable<TEntity> GetAll(Expression<Func<TEntity, bool>> predicate, params Expression<Func<TEntity, object>>[] includes)
+    public void Add(TEntity entity)
     {
-        var query = _unitOfWork.Repository<TEntity, TKey>().Query();
+        _unitOfWork.Repository<TEntity, TKey>().Add(entity);
+    }
 
-        foreach (var include in includes)
-        {
-            query = query.Include(include);
-        }
-        return query.Where(predicate);
+    /// <inheritdoc />
+    public async Task AddAsync(TEntity entity)
+    {
+        await _unitOfWork.Repository<TEntity, TKey>().AddAsync(entity);
+    }
+
+    /// <inheritdoc />
+    public async Task AddRangeAsync(IEnumerable<TEntity> entities)
+    {
+        await _unitOfWork.Repository<TEntity, TKey>().AddRangeAsync(entities);
+    }
+
+    /// <inheritdoc />
+    public void Update(TEntity entity)
+    {
+        _unitOfWork.Repository<TEntity, TKey>().Update(entity);
+    }
+
+    /// <inheritdoc />
+    public void Delete(TEntity entity)
+    {
+        _unitOfWork.Repository<TEntity, TKey>().Delete(entity);
+    }
+
+    /// <inheritdoc />
+    public void RemoveRange(IEnumerable<TEntity> entities)
+    {
+        _unitOfWork.Repository<TEntity, TKey>().RemoveRange(entities);
+    }
+
+    /// <inheritdoc />
+    public void SaveChanges()
+    {
+        _unitOfWork.SaveChanges();
+    }
+
+    /// <inheritdoc />
+    public async Task SaveChangesAsync()
+    {
+        await _unitOfWork.SaveChangesAsync();
     }
 
     /// <inheritdoc />
@@ -41,6 +78,18 @@ public class GenericService<TEntity, TKey> : IGenericService<TEntity, TKey> wher
             query = query.Include(include);
         }
         return query;
+    }
+
+    /// <inheritdoc />
+    public IQueryable<TEntity> GetAll(Expression<Func<TEntity, bool>> predicate, params Expression<Func<TEntity, object>>[] includes)
+    {
+        var query = _unitOfWork.Repository<TEntity, TKey>().Query();
+
+        foreach (var include in includes)
+        {
+            query = query.Include(include);
+        }
+        return query.Where(predicate);
     }
 
     /// <inheritdoc />
@@ -70,56 +119,16 @@ public class GenericService<TEntity, TKey> : IGenericService<TEntity, TKey> wher
     }
 
     /// <inheritdoc />
-    public void Add(TEntity entity)
+    public async Task LoadCollectionAsync<TProperty>(TEntity entity, Expression<Func<TEntity, IEnumerable<TProperty>>> navigationProperty)
+    where TProperty : class
     {
-        _unitOfWork.Repository<TEntity, TKey>().Add(entity);
-        SaveChanges();
+        await _unitOfWork.LoadCollectionAsync(entity, navigationProperty);
     }
 
     /// <inheritdoc />
-    public void Delete(TEntity entity)
+    public async Task LoadCollectionAsync<TProperty>(IEnumerable<TProperty> entities, Expression<Func<TProperty, IEnumerable<TEntity>>> navigationProperty)
+    where TProperty : class
     {
-        _unitOfWork.Repository<TEntity, TKey>().Delete(entity);
-        SaveChanges();
-    }
-
-    /// <inheritdoc />
-    public void SaveChanges()
-    {
-        _unitOfWork.SaveChanges();
-    }
-
-    /// <inheritdoc />
-    public async Task SaveChangesAsync()
-    {
-        await _unitOfWork.SaveChangesAsync();
-    }
-
-    /// <inheritdoc />
-    public void Update(TEntity entity)
-    {
-        _unitOfWork.Repository<TEntity, TKey>().Update(entity);
-        SaveChanges();
-    }
-
-    /// <inheritdoc />
-    public async Task AddAsync(TEntity entity)
-    {
-        _unitOfWork.Repository<TEntity, TKey>().Add(entity);
-        await SaveChangesAsync();
-    }
-
-    /// <inheritdoc />
-    public async Task UpdateAsync(TEntity entity)
-    {
-        _unitOfWork.Repository<TEntity, TKey>().Update(entity);
-        await SaveChangesAsync();
-    }
-
-    /// <inheritdoc />
-    public async Task DeleteAsync(TEntity entity)
-    {
-        _unitOfWork.Repository<TEntity, TKey>().Delete(entity);
-        await SaveChangesAsync();
+        await _unitOfWork.LoadCollectionAsync(entities, navigationProperty);
     }
 }

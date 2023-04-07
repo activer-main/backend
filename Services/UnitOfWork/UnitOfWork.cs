@@ -4,6 +4,7 @@ using ActiverWebAPI.Interfaces.UnitOfWork;
 using ActiverWebAPI.Services.Repository;
 using Microsoft.EntityFrameworkCore;
 using System.Collections;
+using System.Linq.Expressions;
 
 namespace ActiverWebAPI.Services.UnitOfWork;
 
@@ -23,14 +24,19 @@ public class UnitOfWork : IUnitOfWork
         _context = context;
     }
 
-    /// <summary>
-    /// 取得某一個Entity的Repository。
-    /// 如果沒有取過，會initialise一個
-    /// 如果有就取得之前initialise的那個。
-    /// </summary>
-    /// <typeparam name="TEntity">此Context裡面的Entity Type</typeparam>
-    /// <typeparam name="TKey">Entity的key type</typeparam>
-    /// <returns>Entity的Repository</returns>
+    /// <inheritdoc />
+    public void SaveChanges()
+    {
+        _context.SaveChanges();
+    }
+
+    /// <inheritdoc />
+    public async Task SaveChangesAsync()
+    {
+        await _context.SaveChangesAsync();
+    }
+
+    /// <inheritdoc />
     public IRepository<TEntity, TKey> Repository<TEntity, TKey>() where TEntity : class, IEntity<TKey>
     {
         if (_repositories == null)
@@ -49,24 +55,39 @@ public class UnitOfWork : IUnitOfWork
         return (IRepository<TEntity, TKey>)_repositories[entityType];
     }
 
-    /// <summary>
-    /// 儲存所有異動。
-    /// </summary>
-    public void SaveChanges()
+    /// <inheritdoc />
+    public async Task LoadCollectionAsync<TEntity,TProperty>(TEntity entity, Expression<Func<TEntity, IEnumerable<TProperty>>> navigationProperty)
+    where TProperty : class
     {
-        _context.SaveChanges();
+        if (entity == null) throw new ArgumentNullException(nameof(entity));
+        if (navigationProperty == null) throw new ArgumentNullException(nameof(navigationProperty));
+
+        var entityType = _context.Model.FindEntityType(typeof(TEntity));
+        var navigation = entityType.GetNavigations().SingleOrDefault(n => n.Name == ((MemberExpression)navigationProperty.Body).Member.Name) ?? throw new ArgumentException($"Navigation property '{((MemberExpression)navigationProperty.Body).Member.Name}' not found for entity type '{typeof(TEntity)}'.");
+        await _context.Entry(entity)
+            .Collection(navigation.Name)
+            .LoadAsync();
+    }
+
+    /// <inheritdoc />
+    public async Task LoadCollectionAsync<TEntity,TProperty>(IEnumerable<TProperty> entities, Expression<Func<TProperty, IEnumerable<TEntity>>> navigationProperty)
+    where TProperty : class
+    {
+        if (entities == null) throw new ArgumentNullException(nameof(entities));
+        if (navigationProperty == null) throw new ArgumentNullException(nameof(navigationProperty));
+
+        foreach (var entity in entities)
+        {
+            var entityType = _context.Model.FindEntityType(typeof(TEntity));
+            var navigation = entityType.GetNavigations().SingleOrDefault(n => n.Name == ((MemberExpression)navigationProperty.Body).Member.Name) ?? throw new ArgumentException($"Navigation property '{((MemberExpression)navigationProperty.Body).Member.Name}' not found for entity type '{typeof(TEntity)}'.");
+            await _context.Entry(entity)
+                .Collection(navigation.Name)
+                .LoadAsync();
+        }
     }
 
     /// <summary>
-    /// 非同步儲存所有異動。
-    /// </summary>
-    public async Task SaveChangesAsync()
-    {
-        await _context.SaveChangesAsync();
-    }
-
-    /// <summary>
-    /// 清除此Class的資源。
+    /// 釋放資源。
     /// </summary>
     public void Dispose()
     {
@@ -75,9 +96,9 @@ public class UnitOfWork : IUnitOfWork
     }
 
     /// <summary>
-    /// 清除此Class的資源。
+    /// 釋放 <see cref="UnitOfWork{TContext}"/> 所持有的資源。
     /// </summary>
-    /// <param name="disposing">是否在清理中？</param>
+    /// <param name="disposing">是否正在釋放資源。</param>
     protected virtual void Dispose(bool disposing)
     {
         if (!_disposed)
@@ -91,6 +112,4 @@ public class UnitOfWork : IUnitOfWork
 
         _disposed = true;
     }
-
-    
 }

@@ -198,7 +198,8 @@ public class UserController : ControllerBase
             };
         }
 
-        await _userService.UpdateAsync(user);
+        _userService.Update(user);
+        await _userService.SaveChangesAsync();
         var userInfoDTO = _mapper.Map<UserInfoDTO>(user);
         return Ok(userInfoDTO);
     }
@@ -409,8 +410,8 @@ public class UserController : ControllerBase
 
         // 更新使用者資料庫中的圖片
         user.Avatar = null;
-        await _userService.UpdateAsync(user);
-
+        _userService.Update(user);
+        await _userService.SaveChangesAsync();
         return Ok("成功刪除使用者頭像。");
     }
 
@@ -468,7 +469,8 @@ public class UserController : ControllerBase
         {
             return NotFound();
         }
-        await _userService.DeleteAsync(user);
+        _userService.Delete(user);
+        await _userService.SaveChangesAsync();
         return Ok();
     }
 
@@ -507,7 +509,8 @@ public class UserController : ControllerBase
             return BadRequest("驗證碼不正確或已失效");
         }
         user.Verified = true;
-        await _userService.UpdateAsync(user);
+        _userService.Update(user);
+        await _userService.SaveChangesAsync();
         return Ok("電子郵件驗證成功");
     }
 

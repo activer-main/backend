@@ -77,7 +77,8 @@ public class UserService : GenericService<User, Guid>
             VerificationCode = token,
             ExpiresTime = DateTime.UtcNow.AddMinutes(10),
         });
-        await UpdateAsync(user);
+        Update(user);
+        await SaveChangesAsync();
         return token;
     }
 

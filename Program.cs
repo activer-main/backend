@@ -3,6 +3,7 @@ using ActiverWebAPI.Interfaces.Service;
 using ActiverWebAPI.Interfaces.UnitOfWork;
 using ActiverWebAPI.Profile;
 using ActiverWebAPI.Services;
+using ActiverWebAPI.Services.ActivityServices;
 using ActiverWebAPI.Services.Middlewares;
 using ActiverWebAPI.Services.UnitOfWork;
 using ActiverWebAPI.Services.UserServices;
@@ -54,6 +55,7 @@ builder.Services.AddScoped<UserService>();
 builder.Services.AddScoped<AreaService>();
 builder.Services.AddScoped<ProfessionService>();
 builder.Services.AddScoped<CountyService>();
+builder.Services.AddScoped<ActivityService>();
 builder.Services.AddScoped<TokenService>();
 builder.Services.AddSingleton<IPasswordHasher, PasswordHasher>();
 builder.Services.AddScoped<IEmailService, EmailService>();
@@ -63,7 +65,8 @@ builder.Services.AddTransient<IMiddleware, EmailVerificationMiddleware>();
 builder.Services.AddAutoMapper(
     cfg => cfg.AddProfile(new MappingProfile(
         builder.Services.BuildServiceProvider().GetService<IPasswordHasher>(),
-        builder.Services.BuildServiceProvider().GetService<IConfiguration>()
+        builder.Services.BuildServiceProvider().GetService<IConfiguration>(),
+        builder.Services.BuildServiceProvider().GetService<IUnitOfWork>()
         )),
         AppDomain.CurrentDomain.GetAssemblies());
 

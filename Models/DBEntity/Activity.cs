@@ -21,6 +21,7 @@ public class Activity : BaseEntity, IEntity<Guid>
     public List<Connection>? Connections { get; set; }
     public List<Holder>? Holders { get; set; }
     public List<Objective>? Objectives { get; set; }
+    public List<Tag>? Tags { get; set; }
     public List<UserVoteTagInActivity>? UserVoteTagInActivity { get; set; }
     public List<UserActivityRecord>? UserActivityRecords { get; set; }
 }
@@ -42,9 +43,12 @@ public class Source : BaseEntity, IEntity<int>
     public string SourceURL { get; set; }
 
     [JsonIgnore]
-    public List<Activity> Activities { get; set; }
+    [Required]
+    public Activity Activity { get; set; }
+    public Guid ActivityId { get; set; }
 }
 
+[Index(nameof(Content), IsUnique = true)]
 public class Connection : BaseEntity, IEntity<int>
 {
     public int Id { get; set; }
@@ -168,4 +172,3 @@ public class Location : BaseEntity, IEntity<int>
     [JsonIgnore]
     public List<Branch>? Branches { get; set; }
 }
-

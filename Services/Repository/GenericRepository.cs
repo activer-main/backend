@@ -1,5 +1,6 @@
 ﻿using ActiverWebAPI.Interfaces.Repository;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using System.Linq.Expressions;
 
 namespace ActiverWebAPI.Services.Repository;
@@ -18,58 +19,31 @@ public class GenericRepository<TEntity, TKey> : IRepository<TEntity, TKey>
         Context = inContext;
     }
 
-    /// <summary>
-    /// 新增一筆資料到資料庫。
-    /// </summary>
-    /// <param name="entity">要新增到資料的庫的Entity</param>
+    /// <inheritdoc />
     public void Add(TEntity entity)
     {
         Context.Set<TEntity>().Add(entity);
     }
 
-    /// <summary>
-    /// 以Id查找內容。
-    /// </summary>
-    /// <param name="id">要取得的Id</param>
-    /// <returns>取得的內容。</returns>
-    public TEntity GetById(TKey id)
+    /// <inheritdoc />
+    public async Task AddAsync(TEntity entity)
     {
-        return Context.Set<TEntity>().Find(id);
+        await Context.Set<TEntity>().AddAsync(entity);
     }
 
-    /// <summary>
-    /// 取得Entity全部筆數的IQueryable。
-    /// </summary>
-    /// <param name="predicate">Where的表達式</param>
-    /// <returns>Entity全部筆數的IQueryable。</returns>
-    public IQueryable<TEntity> GetAll(Expression<Func<TEntity, bool>> predicate)
+    /// <inheritdoc />
+    public async Task AddRangeAsync(IEnumerable<TEntity> entities)
     {
-        return Context.Set<TEntity>().Where(predicate).AsQueryable();
+        await Context.Set<TEntity>().AddRangeAsync(entities);
     }
 
-    /// <summary>
-    /// 取得Entity全部筆數的IQueryable。
-    /// </summary>
-    /// <returns>Entity全部筆數的IQueryable。</returns>
-    public IQueryable<TEntity> GetAll()
-    {
-        return Context.Set<TEntity>().AsQueryable();
-    }
-
-    /// <summary>
-    /// 更新一筆Entity內容。
-    /// </summary>
-    /// <param name="entity">要更新的內容</param>
+    /// <inheritdoc />
     public void Update(TEntity entity)
     {
         Context.Entry(entity).State = EntityState.Modified;
     }
 
-    /// <summary>
-    /// 更新一筆Entity的內容。只更新有指定的Property。
-    /// </summary>
-    /// <param name="entity">要更新的內容。</param>
-    /// <param name="updateProperties">需要更新的欄位。</param>
+    /// <inheritdoc />
     public void Update(TEntity entity, Expression<Func<TEntity, object>>[] updateProperties)
     {
         Context.Entry(entity).State = EntityState.Unchanged;
@@ -83,40 +57,53 @@ public class GenericRepository<TEntity, TKey> : IRepository<TEntity, TKey>
         }
     }
 
-    /// <summary>
-    /// 刪除一筆資料內容。
-    /// </summary>
-    /// <param name="entity">要被刪除的Entity。</param>
+    /// <inheritdoc />
     public void Delete(TEntity entity)
     {
         Context.Entry(entity).State = EntityState.Deleted;
     }
 
-    /// <summary>
-    /// 根據 id 取得 TEntity
-    /// </summary>
-    /// <param name="id">TEntity 的 id</param>
-    /// <returns>符合 id 的 TEntity</returns>
+    /// <inheritdoc />
+    public void RemoveRange(IEnumerable<TEntity> entities)
+    {
+        Context.Set<TEntity>().RemoveRange(entities);
+    }
+
+    /// <inheritdoc />
+    public IQueryable<TEntity> Query()
+    {
+        return Context.Set<TEntity>().AsQueryable();
+    }
+
+    /// <inheritdoc />
+    public TEntity GetById(TKey id)
+    {
+        return Context.Set<TEntity>().Find(id);
+    }
+
+    /// <inheritdoc />
     public async Task<TEntity> GetByIdAsync(TKey id)
     {
         return await Context.Set<TEntity>().FindAsync(id);
     }
 
-    /// <summary>
-    /// 新增 TEntity
-    /// </summary>
-    /// <param name="entity">欲新增的 TEntity</param>
-    public async Task AddAsync(TEntity entity)
-    {
-        await Context.Set<TEntity>().AddAsync(entity);
-    }
-
-    /// <summary>
-    /// 取得目前 Entity 的 Queryable 物件。
-    /// </summary>
-    /// <returns>Queryable 物件。</returns>
-    public IQueryable<TEntity> Query()
+    /// <inheritdoc />
+    public IQueryable<TEntity> GetAll()
     {
         return Context.Set<TEntity>().AsQueryable();
+    }
+
+    /// <inheritdoc />
+    public IQueryable<TEntity> GetAll(Expression<Func<TEntity, bool>> predicate)
+    {
+        return Context.Set<TEntity>().Where(predicate).AsQueryable();
+    }
+
+    /// <inheritdoc />
+    public async Task<IEnumerable<TEntity>> CollectionAsync<TProperty>(Expression<Func<TEntity, IEnumerable<TProperty>>> navigationProperty)
+    {
+        var query = Context.Set<TEntity>().AsQueryable();
+        var result = await query.Include(navigationProperty).ToListAsync();
+        return result;
     }
 }
