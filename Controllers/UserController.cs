@@ -270,6 +270,7 @@ public class UserController : ControllerBase
 
         var user = _mapper.Map<User>(signUpDTO);
         await _userService.AddAsync(user);
+        await _userService.SaveChangesAsync();
 
         // 發送驗證電子郵件
         var token = await _userService.GenerateEmailConfirmationTokenAsync(user);
