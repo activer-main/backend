@@ -108,5 +108,4 @@ public class ActivityService : GenericService<Activity, Guid>
             .FirstOrDefaultAsync();
         return activity;
     }
-
 }

@@ -37,6 +37,11 @@ public class MappingProfile : Profile
             .ForMember(dest => dest.ApplyFee, opt => opt.MapFrom(src => src.ApplyFee == null ? null : src.ApplyFee.Select(x => x.Fee)))
             .ForMember(dest => dest.Locations, opt => opt.MapFrom(src => src.Locations == null ? null : src.Locations.Select(x => x.Content)))
             ;
+
+        CreateMap<ManageActivitySegmentDTO, SegmentsResponseDTO<ActivityDTO>>()
+            .ForMember(dest => dest.TotalPage, opt => opt.Ignore())
+            .ForMember(dest => dest.TotalData, opt => opt.Ignore())
+            .ForMember(dest => dest.SearchData, opt => opt.Ignore());
     }
 
     public MappingProfile(
