@@ -52,6 +52,7 @@ builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 // Services
 builder.Services.AddScoped(typeof(IGenericService<,>), typeof(GenericService<,>));
 builder.Services.AddScoped<UserService>();
+builder.Services.AddScoped<BranchService>();
 builder.Services.AddScoped<AreaService>();
 builder.Services.AddScoped<ProfessionService>();
 builder.Services.AddScoped<CountyService>();

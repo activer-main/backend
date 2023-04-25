@@ -45,19 +45,19 @@ public class User : BaseEntity, IEntity<Guid>
     public County? County { get; set; }
     public int? CountyId { get; set; }
 
-    public List<SearchHistory>? SearchHistory { get; set; }
+    public List<SearchHistory>? SearchHistory { get; set; } = new List<SearchHistory> { };
 
-    public List<Objective>? ObjectiveTags { get; set; }
+    public List<Objective>? ObjectiveTags { get; set; } = new List<Objective> { };
 
-    public List<Comment>? Comments { get; set; }
+    public List<Comment>? Comments { get; set; } = new List<Comment> { };
 
-    public List<Tag>? TagStorage { get; set; }
+    public List<Tag>? TagStorage { get; set; } = new List<Tag> { };
 
-    public List<UserVoteTagInActivity>? UserVoteTagInActivities { get; set; }
+    public List<UserVoteTagInActivity>? UserVoteTagInActivities { get; set; } = new List<UserVoteTagInActivity> { };
 
-    public List<BranchStatus>? BranchStatus { get; set; }
+    public List<ActivityStatus>? ActivityStatus { get; set; } = new List<ActivityStatus> { };
     
-    public List<UserActivityRecord>? UserActivityRecords { get; set; }
+    public List<UserActivityRecord>? UserActivityRecords { get; set; } = new List<UserActivityRecord> { };
     public List<UserEmailVerification>? UserEmailVerifications { get; set; } = new List<UserEmailVerification>();
 }
 

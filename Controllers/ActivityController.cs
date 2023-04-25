@@ -3,13 +3,10 @@ using ActiverWebAPI.Models.DTO;
 using ActiverWebAPI.Services.ActivityServices;
 using ActiverWebAPI.Services.UserServices;
 using AutoMapper;
-using MailKit.Search;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.CodeAnalysis;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
-using System.Linq;
 using System.Reflection;
 using System.Security.Claims;
 
@@ -84,13 +81,13 @@ public class ActivityController : ControllerBase
     }
 
     [Authorize]
-    [HttpGet]
+    [HttpGet("manage")]
     public async Task<ActionResult<SegmentsResponseDTO<ActivityDTO>>> GetManageActivities([FromQuery] ManageActivitySegmentDTO segmentRequest)
     {
         var userId = Guid.Parse(HttpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
-        var user = await _userService.GetByIdAsync(userId, 
-            u => u.BranchStatus, 
-            u => u.BranchStatus.Select(b => b.Branch)
+        var user = await _userService.GetByIdAsync(userId,
+            u => u.ActivityStatus,
+            u => u.ActivityStatus.Select(a => a.Activity)
         );
 
         // 確認 User 存在
@@ -99,12 +96,12 @@ public class ActivityController : ControllerBase
             return NotFound("User not found.");
         }
 
-        var activityIDs = user.BranchStatus.Select(b => b.Branch.ActivityId).ToList();
-        
-        var branchStatus = user.BranchStatus.Select(b => new KeyValuePair<int, string> ( b.Id, b.Status )).ToDictionary(kv => kv.Key, kv => kv.Value);
-        var branchStatusIds = branchStatus.Select(kv => kv.Key).ToList();
+        var activityIDs = user.ActivityStatus.Select(a => a.ActivityId).ToList();
 
-        var activityList = _activityService.GetAllActivitiesIncludeAll(a => activityIDs.Contains(a.Id));
+        var activityStatus = user.ActivityStatus.Select(a => new KeyValuePair<Guid, string>(a.ActivityId, a.Status)).ToDictionary(kv => kv.Key, kv => kv.Value);
+        var activityStatusIds = activityStatus.Select(kv => kv.Key).ToList();
+
+        var activityList = _activityService.GetAllActivitiesIncludeAll(x => activityIDs.Contains(x.Id));
 
         // 排序
         var propInfo = typeof(Activity).GetProperty(segmentRequest.SortBy, BindingFlags.IgnoreCase | BindingFlags.Public | BindingFlags.Instance);
@@ -122,18 +119,103 @@ public class ActivityController : ControllerBase
 
         var activityDTOList = _mapper.Map<List<ActivityDTO>>(orderedActivityList);
 
-        activityDTOList.ForEach(x => {
-            x.Branches.ForEach(b => {
-                if (branchStatusIds.Contains(b.Id))
-                {
-                    b.Status = branchStatus.GetValueOrDefault(b.Id, null);
-                }
-            });
+        activityDTOList.ForEach(x =>
+        {
+            if (activityStatusIds.Contains(x.Id))
+            {
+                x.Status = activityStatus.GetValueOrDefault(x.Id, null);
+            }
         });
 
         var SegmentResponse = _mapper.Map<SegmentsResponseDTO<ActivityDTO>>(segmentRequest);
         SegmentResponse.SearchData = activityDTOList;
-        
+
         return SegmentResponse;
     }
+
+    //[Authorize]
+    //[HttpPost("branchStatus")]
+    //public async Task<ActionResult> ChangeBranchStatus(int branchId, string status)
+    //{
+    //    var userId = Guid.Parse(HttpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+    //    var user = await _userService.GetByIdAsync(userId, u => u.BranchStatus);
+
+    //    // 確認 User 存在
+    //    if (user == null)
+    //    {
+    //        return NotFound("User not found.");
+    //    }
+
+    //    var branch = await _branchService.GetByIdAsync(branchId);
+
+    //    // 確認 Branch 存在
+    //    if (branch == null)
+    //    {
+    //        return NotFound("Branch not found.");
+    //    }
+
+    //    var userBranchStatusFind = user.BranchStatus?.Find(x => x.BranchId == branch.Id);
+
+    //    if (userBranchStatusFind == null)
+    //    {
+    //        user.BranchStatus.Add(new BranchStatus
+    //        {
+    //            Branch = branch,
+    //            Status = status
+    //        });
+    //    } else
+    //    {
+    //        userBranchStatusFind.Branch = branch;
+    //        userBranchStatusFind.Status = status;
+    //        _branchService.UpdateBranchStatus(userBranchStatusFind);
+    //    }
+    //    await _branchService.SaveChangesAsync();
+
+    //    return Ok();
+    //}
+
+    [Authorize]
+    [HttpPost("activityStatus")]
+    public async Task<ActionResult> PostActivityStatus(Guid activityId, string status)
+    {
+        var userId = Guid.Parse(HttpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+        var user = await _userService.GetByIdAsync(userId);
+
+        // 確認 User 存在
+        if (user == null)
+        {
+            return NotFound("User not found.");
+        }
+
+        var activity = await _activityService.GetByIdAsync(activityId);
+
+        // 確認 Branch 存在
+        if (activity == null)
+        {
+            return NotFound("Branch not found.");
+        }
+
+        var userActivityStatusFind = user.ActivityStatus?.Find(x => x.ActivityId == activity.Id);
+
+        if (userActivityStatusFind == null)
+        {
+            user.ActivityStatus.Add(new ActivityStatus
+            {
+                Activity = activity,
+                Status = status
+            });
+        }
+        else
+        {
+            userActivityStatusFind.Activity = activity;
+            userActivityStatusFind.Status = status;
+            _activityService.UpdateActivityStatus(userActivityStatusFind);
+        }
+        await _activityService.SaveChangesAsync();
+
+        return Ok();
+    }
 }
+
+
+
