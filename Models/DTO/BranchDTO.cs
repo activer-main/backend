@@ -4,22 +4,20 @@ public class BranchDTO
 {
     public int Id { get; set; }
     public string BranchName { get; set; }
-    public string? Status { get; set; }
-    public Dictionary<string, string>? DateStart { get; set; }
-    public List<string>? DateEnd { get; set; }
-    public List<string>? ApplyStart { get; set; }
-    public List<string>? ApplyEnd { get; set; }
-    public List<string>? ApplyFee { get; set; }
-    public List<string>? Locations { get; set; }
+    public List<string>? Location { get; set; }
+    public List<BranchDateDTO>? Date { get; set; }
 }
 
 public class BranchPostDTO
 {
     public string BranchName { get; set; }
-    public Dictionary<string, string> DateStart { get; set; }
-    public List<string> DateEnd { get; set; }
-    public List<string> ApplyStart { get; set; }
-    public List<string> ApplyEnd { get; set; }
-    public List<string> ApplyFee { get; set; }
-    public List<string> Locations { get; set; }
+    public List<string> Location { get; set; }
+    public List<BranchDateDTO> Date { get; set; }
+}
+
+public class BranchDateDTO
+{
+    public string Name { get; set; }
+    public DateTime? Start { get; set; }
+    public DateTime? End { get; set; }
 }

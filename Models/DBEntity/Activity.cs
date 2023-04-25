@@ -12,9 +12,14 @@ public class Activity : BaseEntity, IEntity<Guid>
     public string Title { get; set; }
     public string? Subtitle { get; set; }
 
-    [Column(TypeName="text")]
+    [Column(TypeName = "text")]
     public string Content { get; set; }
+    [Column(TypeName = "text")]
+    public string Html { get; set; }
     public int ActivityClickedCount { get; set; } = 0;
+
+    public List<ActivityFee> Fee { get; set; }
+    public List<ActivityStatus>? Status { get; set; }
     public List<Branch> Branches { get; set; }
     public List<Image>? Images { get; set; }
     public List<Source>? Sources { get; set; }
@@ -24,6 +29,19 @@ public class Activity : BaseEntity, IEntity<Guid>
     public List<Tag>? Tags { get; set; }
     public List<UserVoteTagInActivity>? UserVoteTagInActivity { get; set; }
     public List<UserActivityRecord>? UserActivityRecords { get; set; }
+}
+
+public class ActivityFee : BaseEntity, IEntity<int>
+{
+    [Key]
+    public int Id { get; set; }
+
+    [Column(TypeName = "nvarchar(128)")]
+    public string Fee { get; set; }
+
+    public Guid ActivityId { get; set; }
+    [JsonIgnore]
+    public Activity Activity { get; set; }
 }
 
 public class Image : BaseEntity, IEntity<int>
@@ -72,20 +90,16 @@ public class Branch : BaseEntity, IEntity<int>
 {
     public int Id { get; set; }
     public string BranchName { get; set; }
-    public List<ApplyStart> ApplyStart { get; set;  }
-    public List<ApplyEnd> ApplyEnd { get; set;  }
-    public List<ApplyFee> ApplyFee { get; set;  }
-    public List<DateStart> DateStart { get; set; }
-    public List<DateEnd> DateEnd { get; set; }
-    public List<Location> Locations { get; set; }
+    public List<BranchDate> Date { get; set; }
+    public List<Location> Location { get; set; }
 
     public Guid ActivityId { get; set; }
     [JsonIgnore]
     [Required]
     public Activity Activity { get; set; }
 
-    [JsonIgnore]
-    public List<BranchStatus> BranchStatus { get; set; }
+    //[JsonIgnore]
+    //public List<BranchStatus> BranchStatus { get; set; }
 }
 
 public class BranchStatus : BaseEntity, IEntity<int>
@@ -106,60 +120,35 @@ public class BranchStatus : BaseEntity, IEntity<int>
     public string Status { get; set; }
 }
 
-public class ApplyStart : BaseEntity, IEntity<int>
+public class ActivityStatus : BaseEntity, IEntity<int>
 {
     public int Id { get; set; }
-    public string Content { get; set; }
 
     [JsonIgnore]
     [Required]
-    public Branch Branch { get; set; }
-    public int BranchId { get; set; }
-}
-
-public class ApplyEnd : BaseEntity, IEntity<int>
-{
-    public int Id { get; set; }
-    public string Content { get; set; }
+    public User User { get; set; }
+    public Guid UserId { get; set; }
 
     [JsonIgnore]
     [Required]
-    public Branch Branch { get; set; }
-    public int BranchId { get; set; }
+    public Activity Activity { get; set; }
+    public Guid ActivityId { get; set; }
+
+    [Column(TypeName = "nvarchar(20)")]
+    public string Status { get; set; }
 }
 
-public class ApplyFee : BaseEntity, IEntity<int>
+public class BranchDate : BaseEntity, IEntity<int>
 {
-    public int Id { get; set; }
-    public string Fee { get; set; }
-
-    [JsonIgnore]
-    [Required]
-    public Branch Branch { get; set; }
-    public int BranchId { get; set; }
-}
-
-public class DateStart : BaseEntity, IEntity<int>
-{
+    [Key]
     public int Id { get; set; }
     public string Name { get; set; }
-    public string Date { get; set; }
+    public DateTime? Start { get; set; }
+    public DateTime? End { get; set; }
 
-    [JsonIgnore]
-    [Required]
-    public Branch Branch { get; set; }
     public int BranchId { get; set; }
-}
-
-public class DateEnd : BaseEntity, IEntity<int>
-{
-    public int Id { get; set; }
-    public string Content { get; set; }
-
     [JsonIgnore]
-    [Required]
     public Branch Branch { get; set; }
-    public int BranchId { get; set; }
 }
 
 [Index(nameof(Content), IsUnique = true)]

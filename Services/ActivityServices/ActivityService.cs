@@ -12,11 +12,13 @@ public class ActivityService : GenericService<Activity, Guid>
 {
     private readonly IUnitOfWork _unitOfWork;
     private readonly IRepository<Activity, Guid> _activityRepository;
+    private readonly IRepository<ActivityStatus, int> _activityStatusRepository;
 
     public ActivityService(IUnitOfWork unitOfWork) : base(unitOfWork)
     {
         _unitOfWork = unitOfWork;
         _activityRepository = _unitOfWork.Repository<Activity, Guid>();
+        _activityStatusRepository = _unitOfWork.Repository<ActivityStatus, int>();
     }
 
     public IQueryable<Activity> GetAllActivitiesIncludeAll()
@@ -24,24 +26,13 @@ public class ActivityService : GenericService<Activity, Guid>
         var activities = _activityRepository.Query()
             .Include(ac => ac.Images)
             .Include(ac => ac.Sources)
-            .Include(ac => ac.Sources)
             .Include(ac => ac.Connections)
             .Include(ac => ac.Holders)
             .Include(ac => ac.Objectives)
             .Include(ac => ac.Branches)
-                .ThenInclude(b => b.ApplyStart)
+                .ThenInclude(b => b.Date)
             .Include(ac => ac.Branches)
-                .ThenInclude(b => b.ApplyEnd)
-            .Include(ac => ac.Branches)
-                .ThenInclude(b => b.ApplyFee)
-            .Include(ac => ac.Branches)
-                .ThenInclude(b => b.DateStart)
-            .Include(ac => ac.Branches)
-                .ThenInclude(b => b.DateEnd)
-            .Include(ac => ac.Branches)
-                .ThenInclude(b => b.Locations)
-            .Include(ac => ac.Branches)
-                .ThenInclude(b => b.BranchStatus)
+                .ThenInclude(b => b.Location)
             .Include(ac => ac.UserVoteTagInActivity)
                 .ThenInclude(u => u.Tag)
                     .ThenInclude(t => t.Activities);
@@ -54,27 +45,16 @@ public class ActivityService : GenericService<Activity, Guid>
             .Where(predicate)
             .Include(ac => ac.Images)
             .Include(ac => ac.Sources)
-            .Include(ac => ac.Sources)
             .Include(ac => ac.Connections)
             .Include(ac => ac.Holders)
             .Include(ac => ac.Objectives)
             .Include(ac => ac.Branches)
-                .ThenInclude(b => b.ApplyStart)
+                .ThenInclude(b => b.Date)
             .Include(ac => ac.Branches)
-                .ThenInclude(b => b.ApplyEnd)
-            .Include(ac => ac.Branches)
-                .ThenInclude(b => b.ApplyFee)
-            .Include(ac => ac.Branches)
-                .ThenInclude(b => b.DateStart)
-            .Include(ac => ac.Branches)
-                .ThenInclude(b => b.DateEnd)
-            .Include(ac => ac.Branches)
-                .ThenInclude(b => b.Locations)
-            .Include(ac => ac.Branches)
-                .ThenInclude(b => b.BranchStatus)
+                .ThenInclude(b => b.Location)
             .Include(ac => ac.UserVoteTagInActivity)
-                    .ThenInclude(u => u.Tag)
-                        .ThenInclude(t => t.Activities);
+                .ThenInclude(u => u.Tag)
+                    .ThenInclude(t => t.Activities);
         return activities;
     }
 
@@ -84,28 +64,22 @@ public class ActivityService : GenericService<Activity, Guid>
             .Where(x => x.Id.Equals(Id))
             .Include(ac => ac.Images)
             .Include(ac => ac.Sources)
-            .Include(ac => ac.Sources)
             .Include(ac => ac.Connections)
             .Include(ac => ac.Holders)
             .Include(ac => ac.Objectives)
             .Include(ac => ac.Branches)
-                .ThenInclude(b => b.ApplyStart)
+                .ThenInclude(b => b.Date)
             .Include(ac => ac.Branches)
-                .ThenInclude(b => b.ApplyEnd)
-            .Include(ac => ac.Branches)
-                .ThenInclude(b => b.ApplyFee)
-            .Include(ac => ac.Branches)
-                .ThenInclude(b => b.DateStart)
-            .Include(ac => ac.Branches)
-                .ThenInclude(b => b.DateEnd)
-            .Include(ac => ac.Branches)
-                .ThenInclude(b => b.Locations)
-            .Include(ac => ac.Branches)
-                .ThenInclude(b => b.BranchStatus)
+                .ThenInclude(b => b.Location)
             .Include(ac => ac.UserVoteTagInActivity)
                 .ThenInclude(u => u.Tag)
                     .ThenInclude(t => t.Activities)
             .FirstOrDefaultAsync();
         return activity;
+    }
+
+    public void UpdateActivityStatus(ActivityStatus activityStatusToUpdate)
+    {
+        _activityStatusRepository.Update(activityStatusToUpdate);
     }
 }

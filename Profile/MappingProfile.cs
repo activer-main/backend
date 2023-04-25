@@ -23,6 +23,7 @@ public class MappingProfile : Profile
         CreateMap<Activity, ActivityDTO>()
             .ForMember(dest => dest.Trend, opt => opt.MapFrom(src => src.ActivityClickedCount))
             .ForMember(dest => dest.Images, opt => opt.MapFrom(src => src.Images == null ? null : src.Images.Select(x => x.ImageURL)))
+            .ForMember(dest => dest.Fee, opt => opt.MapFrom(src => src.Fee == null ? null : src.Fee.Select(x => x.Fee)))
             .ForMember(dest => dest.Sources, opt => opt.MapFrom(src => src.Sources == null ? null : src.Sources.Select(x => x.SourceURL)))
             .ForMember(dest => dest.Connections, opt => opt.MapFrom(src => src.Connections == null ? null : src.Connections.Select(x => x.Content)))
             .ForMember(dest => dest.Holders, opt => opt.MapFrom(src => src.Holders == null ? null : src.Holders.Select(x => x.HolderName)))
@@ -30,13 +31,7 @@ public class MappingProfile : Profile
             .ForMember(dest => dest.Tags, opt => opt.MapFrom(src => src.UserVoteTagInActivity == null ? null : src.UserVoteTagInActivity.Select(x => new TagDTO { Text = x.Tag.Text, Type = x.Tag.Type, Trend = x.Tag.TagClickCount, UserVoted = false, ActivityAmount = x.Tag.Activities == null ? 0 : x.Tag.Activities.Count }).Distinct()))
             .ForMember(dest => dest.Branches, opt => opt.MapFrom(src => src.Branches));
         CreateMap<Branch, BranchDTO>()
-            .ForMember(dest => dest.DateStart, opt => opt.MapFrom(src => src.DateStart == null ? null : src.DateStart.Select(x => new KeyValuePair<string, string>(x.Name, x.Date))))
-            .ForMember(dest => dest.DateEnd, opt => opt.MapFrom(src => src.DateEnd == null ? null : src.DateEnd.Select(x => x.Content)))
-            .ForMember(dest => dest.ApplyStart, opt => opt.MapFrom(src => src.ApplyStart == null ? null : src.ApplyStart.Select(x => x.Content)))
-            .ForMember(dest => dest.ApplyEnd, opt => opt.MapFrom(src => src.ApplyEnd == null ? null : src.ApplyEnd.Select(x => x.Content)))
-            .ForMember(dest => dest.ApplyFee, opt => opt.MapFrom(src => src.ApplyFee == null ? null : src.ApplyFee.Select(x => x.Fee)))
-            .ForMember(dest => dest.Locations, opt => opt.MapFrom(src => src.Locations == null ? null : src.Locations.Select(x => x.Content)))
-            ;
+            .ForMember(dest => dest.Location, opt => opt.MapFrom(src => src.Location == null ? null : src.Location.Select(x => x.Content)));
 
         CreateMap<ManageActivitySegmentDTO, SegmentsResponseDTO<ActivityDTO>>()
             .ForMember(dest => dest.TotalPage, opt => opt.Ignore())
@@ -74,12 +69,7 @@ public class MappingProfile : Profile
                         .ForMember(dest => dest.Tags, opt => opt.MapFrom(src => src.Tags == null ? null : MapTagsAsync(src.Tags).Result))
                         .ForMember(dest => dest.Branches, opt => opt.MapFrom(src => src.Branches));
         CreateMap<BranchPostDTO, Branch>()
-                        .ForMember(dest => dest.ApplyStart, opt => opt.MapFrom(src => src.ApplyStart.Select(x => new ApplyStart { Content = x})))
-                        .ForMember(dest => dest.ApplyEnd, opt => opt.MapFrom(src => src.ApplyEnd.Select(x => new ApplyEnd { Content = x })))
-                        .ForMember(dest => dest.ApplyFee, opt => opt.MapFrom(src => src.ApplyFee.Select(x => new ApplyFee { Fee = x })))
-                        .ForMember(dest => dest.DateStart, opt => opt.MapFrom(src => src.DateStart.Select(x => new DateStart { Name = x.Key, Date = x.Value })))
-                        .ForMember(dest => dest.DateEnd, opt => opt.MapFrom(src => src.DateEnd.Select(x => new DateEnd { Content = x })))
-                        .ForMember(dest => dest.Locations, opt => opt.MapFrom(src => MapLocationsAsync(src.Locations).Result))
+                        .ForMember(dest => dest.Location, opt => opt.MapFrom(src => MapLocationsAsync(src.Location).Result))
                         ;
     }
 
