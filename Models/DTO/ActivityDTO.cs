@@ -16,7 +16,6 @@ public class ActivityDTO
     public List<TagDTO>? Tags { get; set; }
 }
 
-
 public class ActivityPostDTO
 {
     public string Title { get; set; }
@@ -29,4 +28,9 @@ public class ActivityPostDTO
     public List<string>? Sources { get; set; }
     public List<BranchPostDTO> Branches { get; set; }
     public List<TagPostDTO>? Tags { get; set; }
+}
+
+public class ManageActivitySegmentDTO : SegmentsRequestDTO
+{
+    public new string OrderBy { get; set; } = "date";
 }

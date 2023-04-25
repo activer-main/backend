@@ -1,10 +1,16 @@
-﻿using ActiverWebAPI.Models.DTO;
+﻿using ActiverWebAPI.Models.DBEntity;
+using ActiverWebAPI.Models.DTO;
 using ActiverWebAPI.Services.ActivityServices;
+using ActiverWebAPI.Services.UserServices;
 using AutoMapper;
+using MailKit.Search;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.CodeAnalysis;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using System.Linq;
+using System.Reflection;
 using System.Security.Claims;
 
 namespace ActiverWebAPI.Controllers;
@@ -14,14 +20,17 @@ namespace ActiverWebAPI.Controllers;
 public class ActivityController : ControllerBase
 {
     private readonly ActivityService _activityService;
+    private readonly UserService _userService;
     private readonly IMapper _mapper;
 
     public ActivityController(
         ActivityService activityService,
+        UserService userService,
         IMapper mapper
     )
     {
         _activityService = activityService;
+        _userService = userService;
         _mapper = mapper;
     }
 
@@ -72,5 +81,59 @@ public class ActivityController : ControllerBase
         await _activityService.AddRangeAsync(activities);
         var activityDTOs = _mapper.Map<List<ActivityDTO>>(activities);
         return activityDTOs;
+    }
+
+    [Authorize]
+    [HttpGet]
+    public async Task<ActionResult<SegmentsResponseDTO<ActivityDTO>>> GetManageActivities([FromQuery] ManageActivitySegmentDTO segmentRequest)
+    {
+        var userId = Guid.Parse(HttpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+        var user = await _userService.GetByIdAsync(userId, 
+            u => u.BranchStatus, 
+            u => u.BranchStatus.Select(b => b.Branch)
+        );
+
+        // 確認 User 存在
+        if (user == null)
+        {
+            return NotFound("User not found.");
+        }
+
+        var activityIDs = user.BranchStatus.Select(b => b.Branch.ActivityId).ToList();
+        
+        var branchStatus = user.BranchStatus.Select(b => new KeyValuePair<int, string> ( b.Id, b.Status )).ToDictionary(kv => kv.Key, kv => kv.Value);
+        var branchStatusIds = branchStatus.Select(kv => kv.Key).ToList();
+
+        var activityList = _activityService.GetAllActivitiesIncludeAll(a => activityIDs.Contains(a.Id));
+
+        // 排序
+        var propInfo = typeof(Activity).GetProperty(segmentRequest.SortBy, BindingFlags.IgnoreCase | BindingFlags.Public | BindingFlags.Instance);
+        if (propInfo == null)
+        {
+            // 排序字段不存在，返回错误响应
+            return BadRequest("Invalid sorting field.");
+        }
+
+        // 对 activityList 进行排序
+        var orderedActivityList = segmentRequest.OrderBy.ToLower() == "descending"
+            ? activityList.OrderByDescending(x => propInfo.GetValue(x, null)).ToList()
+            : activityList.OrderBy(x => propInfo.GetValue(x, null)).ToList();
+        orderedActivityList = orderedActivityList.Skip((segmentRequest.Page - 1) * segmentRequest.CountPerPage).Take(segmentRequest.CountPerPage).ToList();
+
+        var activityDTOList = _mapper.Map<List<ActivityDTO>>(orderedActivityList);
+
+        activityDTOList.ForEach(x => {
+            x.Branches.ForEach(b => {
+                if (branchStatusIds.Contains(b.Id))
+                {
+                    b.Status = branchStatus.GetValueOrDefault(b.Id, null);
+                }
+            });
+        });
+
+        var SegmentResponse = _mapper.Map<SegmentsResponseDTO<ActivityDTO>>(segmentRequest);
+        SegmentResponse.SearchData = activityDTOList;
+        
+        return SegmentResponse;
     }
 }

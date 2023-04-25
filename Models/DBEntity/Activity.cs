@@ -72,7 +72,6 @@ public class Branch : BaseEntity, IEntity<int>
 {
     public int Id { get; set; }
     public string BranchName { get; set; }
-
     public List<ApplyStart> ApplyStart { get; set;  }
     public List<ApplyEnd> ApplyEnd { get; set;  }
     public List<ApplyFee> ApplyFee { get; set;  }
