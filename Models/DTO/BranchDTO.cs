@@ -12,7 +12,7 @@ public class BranchPostDTO
 {
     public string BranchName { get; set; }
     public List<string> Location { get; set; }
-    public List<BranchDateDTO> Date { get; set; }
+    public List<BranchDateDTO>? Date { get; set; }
 }
 
 public class BranchDateDTO
