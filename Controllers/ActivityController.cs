@@ -84,7 +84,7 @@ public class ActivityController : ControllerBase
     }
 
     [Authorize]
-    [HttpGet]
+    [HttpGet("manage")] 
     public async Task<ActionResult<SegmentsResponseDTO<ActivityDTO>>> GetManageActivities([FromQuery] ManageActivitySegmentDTO segmentRequest)
     {
         var userId = Guid.Parse(HttpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
