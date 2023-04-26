@@ -33,6 +33,16 @@ public class MappingProfile : Profile
         CreateMap<Branch, BranchDTO>()
             .ForMember(dest => dest.Location, opt => opt.MapFrom(src => src.Location == null ? null : src.Location.Select(x => x.Content)));
 
+        CreateMap<SegmentsRequestBaseDTO, SegmentsResponseBaseDTO<ActivityDTO>>()
+            .ForMember(dest => dest.TotalPage, opt => opt.Ignore())
+            .ForMember(dest => dest.TotalData, opt => opt.Ignore())
+            .ForMember(dest => dest.SearchData, opt => opt.Ignore());
+
+        CreateMap<SegmentsRequestDTO, SegmentsResponseDTO<ActivityDTO>>()
+            .ForMember(dest => dest.TotalPage, opt => opt.Ignore())
+            .ForMember(dest => dest.TotalData, opt => opt.Ignore())
+            .ForMember(dest => dest.SearchData, opt => opt.Ignore());
+
         CreateMap<ManageActivitySegmentDTO, SegmentsResponseDTO<ActivityDTO>>()
             .ForMember(dest => dest.TotalPage, opt => opt.Ignore())
             .ForMember(dest => dest.TotalData, opt => opt.Ignore())

@@ -104,6 +104,7 @@ public class ActivityController : BaseController
         var activityStatusIds = activityStatus.Select(kv => kv.Key).ToList();
 
         var activityList = _activityService.GetAllActivitiesIncludeAll(x => activityIDs.Contains(x.Id));
+        var totalCount = activityList.Count();
 
         var orderedActivityList = DataHelper.GetSortedAndPagedData(activityList, segmentRequest.SortBy, segmentRequest.OrderBy, segmentRequest.Page, segmentRequest.CountPerPage);
 
@@ -119,10 +120,27 @@ public class ActivityController : BaseController
 
         var SegmentResponse = _mapper.Map<SegmentsResponseDTO<ActivityDTO>>(segmentRequest);
         SegmentResponse.SearchData = activityDTOList;
+        SegmentResponse.TotalPage = (totalCount / segmentRequest.CountPerPage) + 1;
+        SegmentResponse.TotalData = totalCount;
 
-        return SegmentResponse;
+        return Ok(SegmentResponse);
     }
 
+    [AllowAnonymous]
+    [HttpGet("trend")]
+    public async Task<ActionResult<SegmentsResponseDTO<ActivityDTO>>> GetTrendActivities([FromQuery] SegmentsRequestBaseDTO segmentRequest)
+    {
+        var activityList = _activityService.GetAllActivitiesIncludeAll();
+        var totalCount = activityList.Count();
+        var orderedActivityList = DataHelper.GetSortedAndPagedData(activityList, "ActivityClickedCount", segmentRequest.OrderBy, segmentRequest.Page, segmentRequest.CountPerPage);
+        var activityDTOList = _mapper.Map<List<ActivityDTO>>(orderedActivityList);
+        var SegmentResponse = _mapper.Map<SegmentsResponseBaseDTO<ActivityDTO>>(segmentRequest);
+        SegmentResponse.SearchData = activityDTOList;
+        SegmentResponse.TotalPage = (totalCount / segmentRequest.CountPerPage) + 1;
+        SegmentResponse.TotalData = totalCount;
+
+        return Ok(SegmentResponse);
+    }
 
     [Authorize]
     [HttpPost("activityStatus")]
@@ -165,10 +183,6 @@ public class ActivityController : BaseController
 
         return Ok();
     }
-
-    [AllowAnonymous]
-    [HttpGet("trend")]
-    public async Task<ActionResult<SegmentsResponseDTO<ActivityDTO>>> GetTrendActivities([FromQuery] )
 }
 
 

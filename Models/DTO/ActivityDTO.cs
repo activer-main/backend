@@ -34,5 +34,5 @@ public class ActivityPostDTO
 
 public class ManageActivitySegmentDTO : SegmentsRequestDTO
 {
-    public new string OrderBy { get; set; } = "date";
+    public new string OrderBy { get; set; } = "CreatedAt";
 }

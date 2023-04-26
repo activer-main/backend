@@ -6,12 +6,8 @@ public static class DataHelper
 {
     public static List<T> GetSortedAndPagedData<T>(IEnumerable<T> data, string sortBy, string orderBy, int page, int countPerPage)
     {
-        var propInfo = typeof(T).GetProperty(sortBy, BindingFlags.IgnoreCase | BindingFlags.Public | BindingFlags.Instance);
-        if (propInfo == null)
-        {
-            throw new ArgumentException("Sorting field not found.");
-        }
-
+        var propInfo = typeof(T).GetProperty(sortBy, BindingFlags.IgnoreCase | BindingFlags.Public | BindingFlags.Instance) 
+            ?? throw new ArgumentException("Sorting field not found.");
         var orderedData = orderBy.ToLower() == "descending"
             ? data.OrderByDescending(x => propInfo.GetValue(x, null)).ToList()
             : data.OrderBy(x => propInfo.GetValue(x, null)).ToList();
