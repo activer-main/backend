@@ -66,7 +66,7 @@ public class MappingProfile : Profile
             .ForMember(dest => dest.Professions, opt => opt.MapFrom(src => src.Professions == null ? null : src.Professions.Select(x => new UserProfessionDTO { Id = x.Id, Profession = x.Content }).ToList()))
             .ForMember(dest => dest.County, opt => opt.MapFrom(src => src.County == null ? null : src.County.Content))
             .ForMember(dest => dest.Username, opt => opt.MapFrom(src => src.NickName))
-            .ForMember(dest => dest.EmailVerifed, opt => opt.MapFrom(src => src.Verified))
+            .ForMember(dest => dest.EmailVerified, opt => opt.MapFrom(src => src.Verified))
             .ForMember(dest => dest.Gender, opt => opt.MapFrom(src => ((UserGender)src.Gender).ToString()))
             .ForMember(dest => dest.Birthday, opt => opt.MapFrom(src => src.BrithDay == null ? null : src.BrithDay.Value.ToShortDateString()));
 
