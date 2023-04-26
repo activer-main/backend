@@ -12,6 +12,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Text;
+using static ActiverWebAPI.Dev.Swagger.Filter;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -45,6 +46,8 @@ builder.Services.AddSwaggerGen(c =>
             new string[] {}
         }
     });
+    // 將所有非可為空的 string 屬性設置為必填
+    c.SchemaFilter<NonNullStringPropertiesSchemaFilter>();
 });
 
 builder.Services.AddDbContext<ActiverDbContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("DevConnection")));
