@@ -133,46 +133,6 @@ public class ActivityController : ControllerBase
         return SegmentResponse;
     }
 
-    //[Authorize]
-    //[HttpPost("branchStatus")]
-    //public async Task<ActionResult> ChangeBranchStatus(int branchId, string status)
-    //{
-    //    var userId = Guid.Parse(HttpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
-    //    var user = await _userService.GetByIdAsync(userId, u => u.BranchStatus);
-
-    //    // 確認 User 存在
-    //    if (user == null)
-    //    {
-    //        return NotFound("User not found.");
-    //    }
-
-    //    var branch = await _branchService.GetByIdAsync(branchId);
-
-    //    // 確認 Branch 存在
-    //    if (branch == null)
-    //    {
-    //        return NotFound("Branch not found.");
-    //    }
-
-    //    var userBranchStatusFind = user.BranchStatus?.Find(x => x.BranchId == branch.Id);
-
-    //    if (userBranchStatusFind == null)
-    //    {
-    //        user.BranchStatus.Add(new BranchStatus
-    //        {
-    //            Branch = branch,
-    //            Status = status
-    //        });
-    //    } else
-    //    {
-    //        userBranchStatusFind.Branch = branch;
-    //        userBranchStatusFind.Status = status;
-    //        _branchService.UpdateBranchStatus(userBranchStatusFind);
-    //    }
-    //    await _branchService.SaveChangesAsync();
-
-    //    return Ok();
-    //}
 
     [Authorize]
     [HttpPost("activityStatus")]
