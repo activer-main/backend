@@ -8,7 +8,7 @@ namespace ActiverWebAPI.Controllers;
 [Authorize]
 public class BaseController : Controller
 {
-    public Guid UserId
+    public Guid? UserId
     {
         get
         {
@@ -18,7 +18,7 @@ public class BaseController : Controller
                 return userId;
             }
 
-            throw new ApplicationException("Invalid user ID.");
+            return null;
         }
     }
 
