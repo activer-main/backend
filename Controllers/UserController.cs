@@ -4,6 +4,7 @@ using ActiverWebAPI.Models.DBEntity;
 using ActiverWebAPI.Models.DTO;
 using ActiverWebAPI.Services.Middlewares;
 using ActiverWebAPI.Services.UserServices;
+using ActiverWebAPI.Utils;
 using AutoMapper;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -15,7 +16,7 @@ namespace ActiverWebAPI.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class UserController : ControllerBase
+public class UserController : BaseController
 {
     private readonly UserService _userService;
     private readonly TokenService _tokenService;
@@ -78,7 +79,7 @@ public class UserController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<UserInfoDTO>> GetUser()
     {
-        var userId = Guid.Parse(HttpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+        var userId = (Guid)ViewData["UserId"];
         var user = await _userService.GetByIdAsync(userId,
             user => user.Avatar,
             user => user.Area,
@@ -115,13 +116,9 @@ public class UserController : ControllerBase
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<ActionResult<UserInfoDTO>> UpdateUser([FromBody] UserUpdateDTO patchDoc)
     {
-        var userId = HttpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        if (string.IsNullOrEmpty(userId))
-        {
-            return BadRequest();
-        }
+        var userId = (Guid)ViewData["UserId"];
 
-        var user = await _userService.GetByIdAsync(Guid.Parse(userId));
+        var user = await _userService.GetByIdAsync(userId);
         if (user == null)
         {
             return Unauthorized();
@@ -307,7 +304,7 @@ public class UserController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> UploadAvatar(IFormFile file)
     {
-        var userId = Guid.Parse(HttpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+        var userId = (Guid)ViewData["UserId"];
         var user = await _userService.GetByIdAsync(userId, user => user.Avatar);
 
         // 確認 User 存在
@@ -323,7 +320,7 @@ public class UserController : ControllerBase
         }
 
         // 檢查檔案類型
-        if (!IsImage(file))
+        if (!DataHelper.IsImage(file))
         {
             return BadRequest("不支援此類型檔案");
         }
@@ -387,7 +384,7 @@ public class UserController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> DeleteAvatar()
     {
-        var userId = Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+        var userId = (Guid)ViewData["UserId"];
         var user = await _userService.GetByIdAsync(userId, user => user.Avatar);
 
         // 確認 User 存在
@@ -489,15 +486,15 @@ public class UserController : ControllerBase
     [Produces("application/json")]
     public async Task<ActionResult> VerifyEmail(string verifyCode)
     {
-        var userId = HttpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        var userId = (Guid)ViewData["UserId"];
         // 檢查參數是否為 null 或空字串
-        if (string.IsNullOrEmpty(userId) || string.IsNullOrEmpty(verifyCode))
+        if (string.IsNullOrEmpty(verifyCode))
         {
             return BadRequest();
         }
 
         // 驗證電子郵件驗證碼
-        var user = await _userService.GetByIdAsync(Guid.Parse(userId), 
+        var user = await _userService.GetByIdAsync(userId, 
             user => user.UserEmailVerifications);
         if (user == null)
         {
@@ -528,15 +525,10 @@ public class UserController : ControllerBase
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<ActionResult> ResendVerifyEmail()
     {
-        var userId = HttpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        // 檢查參數是否為 null 或空字串
-        if (string.IsNullOrEmpty(userId))
-        {
-            return BadRequest();
-        }
+        var userId = (Guid)ViewData["UserId"];
 
         // 驗證電子郵件驗證碼
-        var user = await _userService.GetByIdAsync(Guid.Parse(userId));
+        var user = await _userService.GetByIdAsync(userId);
         if (user == null)
         {
             return Unauthorized();
@@ -551,8 +543,5 @@ public class UserController : ControllerBase
     }
 
 
-    private static bool IsImage(IFormFile file)
-    {
-        return file.ContentType.StartsWith("image/");
-    }
+    
 }

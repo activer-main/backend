@@ -2,6 +2,7 @@
 using ActiverWebAPI.Models.DTO;
 using ActiverWebAPI.Services.ActivityServices;
 using ActiverWebAPI.Services.UserServices;
+using ActiverWebAPI.Utils;
 using AutoMapper;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -14,7 +15,7 @@ namespace ActiverWebAPI.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class ActivityController : ControllerBase
+public class ActivityController : BaseController
 {
     private readonly ActivityService _activityService;
     private readonly UserService _userService;
@@ -85,7 +86,7 @@ public class ActivityController : ControllerBase
     [HttpGet("manage")]
     public async Task<ActionResult<SegmentsResponseDTO<ActivityDTO>>> GetManageActivities([FromQuery] ManageActivitySegmentDTO segmentRequest)
     {
-        var userId = Guid.Parse(HttpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+        var userId = (Guid)ViewData["UserId"];
         var user = await _userService.GetByIdAsync(userId,
             u => u.ActivityStatus,
             u => u.ActivityStatus.Select(a => a.Activity)
@@ -104,19 +105,7 @@ public class ActivityController : ControllerBase
 
         var activityList = _activityService.GetAllActivitiesIncludeAll(x => activityIDs.Contains(x.Id));
 
-        // 排序
-        var propInfo = typeof(Activity).GetProperty(segmentRequest.SortBy, BindingFlags.IgnoreCase | BindingFlags.Public | BindingFlags.Instance);
-        if (propInfo == null)
-        {
-            // 排序字段不存在，返回错误响应
-            return BadRequest("Invalid sorting field.");
-        }
-
-        // 对 activityList 进行排序
-        var orderedActivityList = segmentRequest.OrderBy.ToLower() == "descending"
-            ? activityList.OrderByDescending(x => propInfo.GetValue(x, null)).ToList()
-            : activityList.OrderBy(x => propInfo.GetValue(x, null)).ToList();
-        orderedActivityList = orderedActivityList.Skip((segmentRequest.Page - 1) * segmentRequest.CountPerPage).Take(segmentRequest.CountPerPage).ToList();
+        var orderedActivityList = DataHelper.GetSortedAndPagedData(activityList, segmentRequest.SortBy, segmentRequest.OrderBy, segmentRequest.Page, segmentRequest.CountPerPage);
 
         var activityDTOList = _mapper.Map<List<ActivityDTO>>(orderedActivityList);
 
@@ -139,7 +128,7 @@ public class ActivityController : ControllerBase
     [HttpPost("activityStatus")]
     public async Task<ActionResult> PostActivityStatus(Guid activityId, string status)
     {
-        var userId = Guid.Parse(HttpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+        var userId = (Guid)ViewData["UserId"];
         var user = await _userService.GetByIdAsync(userId);
 
         // 確認 User 存在
@@ -176,6 +165,10 @@ public class ActivityController : ControllerBase
 
         return Ok();
     }
+
+    [AllowAnonymous]
+    [HttpGet("trend")]
+    public async Task<ActionResult<SegmentsResponseDTO<ActivityDTO>>> GetTrendActivities([FromQuery] )
 }
 
 
