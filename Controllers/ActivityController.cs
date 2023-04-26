@@ -76,6 +76,7 @@ public class ActivityController : ControllerBase
     {
         var activities = _mapper.Map<List<Models.DBEntity.Activity>>(activityPostDTOs);
         await _activityService.AddRangeAsync(activities);
+        await _activityService.SaveChangesAsync();
         var activityDTOs = _mapper.Map<List<ActivityDTO>>(activities);
         return activityDTOs;
     }
