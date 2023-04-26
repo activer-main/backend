@@ -32,8 +32,17 @@ public class ActivityController : BaseController
         _mapper = mapper;
     }
 
+    /// <summary>
+    /// 取得所有活動列表
+    /// </summary>
+    /// <returns>所有活動列表</returns>
+    /// <response code="200">成功取得所有活動列表</response>
+    /// <response code="401">未經授權的訪問</response>
     [Authorize(Roles = "Admin, InternalUser")]
     [HttpGet]
+    [Produces("application/json")]
+    [ProducesResponseType(typeof(List<ActivityDTO>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<ActionResult<List<ActivityDTO>>?> GetAllActivities()
     {
         var activities = await _activityService.GetAllActivitiesIncludeAll().ToListAsync();
@@ -43,8 +52,16 @@ public class ActivityController : BaseController
         return result;
     }
 
+    /// <summary>
+    /// 取得活動資訊
+    /// </summary>
+    /// <param name="id">活動 ID</param>
+    /// <returns>活動 DTO</returns>
     [AllowAnonymous]
     [HttpGet("{id}")]
+    [Produces("application/json")]
+    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ActivityDTO))]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<ActivityDTO>> GetActivity(Guid id)
     {
         var activity = await _activityService.GetActivityIncludeAllByIdAsync(id);
@@ -71,8 +88,18 @@ public class ActivityController : BaseController
         return activityDTO;
     }
 
+    /// <summary>
+    /// 新增活動
+    /// </summary>
+    /// <param name="activityPostDTOs">欲新增的活動資料</param>
+    /// <returns>新增成功的活動資料</returns>
+    /// <response code="200">成功回傳新增成功的活動資料</response>
+    /// <response code="401">使用者未登入，無法新增活動</response>
     [Authorize(Roles = "Admin, InternalUser")]
     [HttpPost]
+    [Produces("application/json")]
+    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(List<ActivityDTO>))]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<ActionResult<List<ActivityDTO>>> PostActivities(List<ActivityPostDTO> activityPostDTOs)
     {
         var activities = _mapper.Map<List<Models.DBEntity.Activity>>(activityPostDTOs);
@@ -82,8 +109,22 @@ public class ActivityController : BaseController
         return activityDTOs;
     }
 
+    /// <summary>
+    /// 取得使用者管理的活動
+    /// </summary>
+    /// <param name="segmentRequest">分頁請求參數</param>
+    /// <returns>活動列表</returns>
+    /// <response code="200">成功取得活動列表</response>
+    /// <response code="400">請求參數錯誤</response>
+    /// <response code="401">使用者未驗證或無權限</response>
+    /// <response code="404">找不到使用者</response>
     [Authorize]
     [HttpGet("manage")]
+    [Produces("application/json")]
+    [ProducesResponseType(typeof(SegmentsResponseDTO<ActivityDTO>), 200)]
+    [ProducesResponseType(400)]
+    [ProducesResponseType(401)]
+    [ProducesResponseType(404)]
     public async Task<ActionResult<SegmentsResponseDTO<ActivityDTO>>> GetManageActivities([FromQuery] ManageActivitySegmentDTO segmentRequest)
     {
         var userId = (Guid)ViewData["UserId"];
@@ -105,11 +146,18 @@ public class ActivityController : BaseController
 
         var activityList = _activityService.GetAllActivitiesIncludeAll(x => activityIDs.Contains(x.Id));
         var totalCount = activityList.Count();
+        var totalPage = (totalCount / segmentRequest.CountPerPage) + 1;
+
+        if(segmentRequest.Page > totalPage)
+        {
+            return BadRequest($"請求的頁數({segmentRequest.Page})大於總頁數({totalPage})");
+        }
 
         var orderedActivityList = DataHelper.GetSortedAndPagedData(activityList, segmentRequest.SortBy, segmentRequest.OrderBy, segmentRequest.Page, segmentRequest.CountPerPage);
 
         var activityDTOList = _mapper.Map<List<ActivityDTO>>(orderedActivityList);
 
+        // 根據使用者更改 Status
         activityDTOList.ForEach(x =>
         {
             if (activityStatusIds.Contains(x.Id))
@@ -119,6 +167,7 @@ public class ActivityController : BaseController
         });
 
         var SegmentResponse = _mapper.Map<SegmentsResponseDTO<ActivityDTO>>(segmentRequest);
+
         SegmentResponse.SearchData = activityDTOList;
         SegmentResponse.TotalPage = (totalCount / segmentRequest.CountPerPage) + 1;
         SegmentResponse.TotalData = totalCount;
@@ -126,24 +175,47 @@ public class ActivityController : BaseController
         return Ok(SegmentResponse);
     }
 
+    /// <summary>
+    /// 取得熱門活動清單
+    /// </summary>
+    /// <param name="segmentRequest">分頁、排序、搜尋參數</param>
+    /// <returns>熱門活動清單</returns>
     [AllowAnonymous]
     [HttpGet("trend")]
+    [ProducesResponseType(typeof(SegmentsResponseDTO<ActivityDTO>), StatusCodes.Status200OK)]
+    [Produces("application/json")]
     public async Task<ActionResult<SegmentsResponseDTO<ActivityDTO>>> GetTrendActivities([FromQuery] SegmentsRequestBaseDTO segmentRequest)
     {
         var activityList = _activityService.GetAllActivitiesIncludeAll();
         var totalCount = activityList.Count();
+        var totalPage = (totalCount / segmentRequest.CountPerPage) + 1;
+
+        if (segmentRequest.Page > totalPage)
+        {
+            return BadRequest($"請求的頁數({segmentRequest.Page})大於總頁數({totalPage})");
+        }
+
         var orderedActivityList = DataHelper.GetSortedAndPagedData(activityList, "ActivityClickedCount", segmentRequest.OrderBy, segmentRequest.Page, segmentRequest.CountPerPage);
         var activityDTOList = _mapper.Map<List<ActivityDTO>>(orderedActivityList);
         var SegmentResponse = _mapper.Map<SegmentsResponseBaseDTO<ActivityDTO>>(segmentRequest);
+
         SegmentResponse.SearchData = activityDTOList;
-        SegmentResponse.TotalPage = (totalCount / segmentRequest.CountPerPage) + 1;
+        SegmentResponse.TotalPage = totalPage;
         SegmentResponse.TotalData = totalCount;
 
         return Ok(SegmentResponse);
     }
 
+    /// <summary>
+    /// 設定使用者對於活動的狀態
+    /// </summary>
+    /// <param name="activityId">活動ID</param>
+    /// <param name="status">狀態</param>
+    /// <returns>操作結果</returns>
     [Authorize]
     [HttpPost("activityStatus")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult> PostActivityStatus(Guid activityId, string status)
     {
         var userId = (Guid)ViewData["UserId"];
