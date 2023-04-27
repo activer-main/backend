@@ -63,8 +63,6 @@ builder.Services.AddScoped<ActivityService>();
 builder.Services.AddScoped<TokenService>();
 builder.Services.AddSingleton<IPasswordHasher, PasswordHasher>();
 builder.Services.AddScoped<IEmailService, EmailService>();
-builder.Services.AddTransient<IMiddleware, EmailVerificationMiddleware>();
-builder.Services.AddTransient<IMiddleware, ErrorHandlingMiddleware>();
 
 // AutoMapper
 builder.Services.AddAutoMapper(
@@ -99,6 +97,10 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+
+// Middlewares
+app.UseMiddleware<EmailVerificationMiddleware>();
+app.UseMiddleware<ErrorHandlingMiddleware>();
 
 app.UseStaticFiles();
 app.UseHttpsRedirection();
