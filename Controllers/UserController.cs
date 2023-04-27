@@ -361,7 +361,7 @@ public class UserController : BaseController
         // 更新使用者資料庫中的圖片
         user.Avatar = avatar;
         _userService.Update(user);
-
+        await _userService.SaveChangesAsync();
         return Ok("檔案上傳成功");
     }
 
