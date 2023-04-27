@@ -4,6 +4,7 @@ using ActiverWebAPI.Interfaces.UnitOfWork;
 using ActiverWebAPI.Profile;
 using ActiverWebAPI.Services;
 using ActiverWebAPI.Services.ActivityServices;
+using ActiverWebAPI.Services.Filters;
 using ActiverWebAPI.Services.Middlewares;
 using ActiverWebAPI.Services.UnitOfWork;
 using ActiverWebAPI.Services.UserServices;
@@ -63,7 +64,7 @@ builder.Services.AddScoped<ActivityService>();
 builder.Services.AddScoped<TokenService>();
 builder.Services.AddSingleton<IPasswordHasher, PasswordHasher>();
 builder.Services.AddScoped<IEmailService, EmailService>();
-builder.Services.AddScoped<EmailVerificationMiddleware>();
+builder.Services.AddScoped<EmailVerificationAttribute>();
 builder.Services.AddScoped<ErrorHandlingMiddleware>();
 
 // AutoMapper
@@ -101,7 +102,6 @@ if (app.Environment.IsDevelopment())
 }
 
 // Middlewares
-app.UseMiddleware<EmailVerificationMiddleware>();
 app.UseMiddleware<ErrorHandlingMiddleware>();
 
 app.UseStaticFiles();

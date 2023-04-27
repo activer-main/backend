@@ -3,6 +3,7 @@ using ActiverWebAPI.Exceptions;
 using ActiverWebAPI.Interfaces.Service;
 using ActiverWebAPI.Models.DBEntity;
 using ActiverWebAPI.Models.DTO;
+using ActiverWebAPI.Services.Filters;
 using ActiverWebAPI.Services.Middlewares;
 using ActiverWebAPI.Services.UserServices;
 using ActiverWebAPI.Utils;
@@ -292,7 +293,7 @@ public class UserController : BaseController
     /// <response code="401">未授權的存取</response>
     /// <response code="404">找不到使用者</response>
     [Authorize]
-    [MiddlewareFilter(typeof(EmailVerificationMiddleware))]
+    [EmailVerification]
     [HttpPost("avatar")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -373,7 +374,7 @@ public class UserController : BaseController
     /// <response code="401">未授權的請求</response>
     /// <response code="404">找不到指定的使用者</response>
     [Authorize]
-    [MiddlewareFilter(typeof(EmailVerificationMiddleware))]
+    [EmailVerification]
     [HttpDelete("avatar")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]

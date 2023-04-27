@@ -26,7 +26,7 @@ public class ErrorHandlingMiddleware : IMiddleware
     {
         var code = HttpStatusCode.InternalServerError; // 預設狀態碼
 
-        if (exception is UnauthorizedAccessException)
+        if (exception is UnauthorizedException)
             code = HttpStatusCode.Unauthorized; // 401
 
         else if (exception is NotFoundException)

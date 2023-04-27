@@ -367,3 +367,4 @@ Migrations/
 
 # Srouces
 wwwroot/
+/appsettings.json

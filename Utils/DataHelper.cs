@@ -8,6 +8,7 @@ public static class DataHelper
     {
         var propInfo = typeof(T).GetProperty(sortBy, BindingFlags.IgnoreCase | BindingFlags.Public | BindingFlags.Instance) 
             ?? throw new ArgumentException("Sorting field not found.");
+        orderBy ??= "descending";
         var orderedData = orderBy.ToLower() == "descending"
             ? data.OrderByDescending(x => propInfo.GetValue(x, null)).ToList()
             : data.OrderBy(x => propInfo.GetValue(x, null)).ToList();
