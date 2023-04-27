@@ -1,4 +1,5 @@
 ﻿using ActiverWebAPI.Enums;
+using ActiverWebAPI.Exceptions;
 using ActiverWebAPI.Interfaces.Service;
 using ActiverWebAPI.Models.DBEntity;
 using ActiverWebAPI.Models.DTO;
@@ -79,7 +80,7 @@ public class UserController : BaseController
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<UserInfoDTO>> GetUser()
     {
-        var userId = (Guid)ViewData["UserId"];
+        var userId = (Guid?)ViewData["UserId"] ?? Guid.Empty;
         var user = await _userService.GetByIdAsync(userId,
             user => user.Avatar,
             user => user.Area,
@@ -91,7 +92,7 @@ public class UserController : BaseController
 
         if (user == null)
         {
-            return NotFound("使用者不存在");
+            throw new UserNotFoundException();
         }
 
         var userInfoDTO = _mapper.Map<UserInfoDTO>(user);
@@ -116,12 +117,12 @@ public class UserController : BaseController
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<ActionResult<UserInfoDTO>> UpdateUser([FromBody] UserUpdateDTO patchDoc)
     {
-        var userId = (Guid)ViewData["UserId"];
+        var userId = (Guid?)ViewData["UserId"] ?? Guid.Empty;
 
         var user = await _userService.GetByIdAsync(userId);
         if (user == null)
         {
-            return Unauthorized();
+            throw new UnauthorizedException("使用者驗證失敗");
         }
 
         // 更新 Username
@@ -135,7 +136,7 @@ public class UserController : BaseController
         {
             if (!Enum.TryParse(patchDoc.Gender, true, out UserGender gender))
             {
-                return BadRequest("使用者的性別未定義，請聯絡客服");
+                throw new BadRequestException("使用者的性別未定義，請聯絡客服");
             }
             user.Gender = (int)gender;
         }
@@ -180,7 +181,7 @@ public class UserController : BaseController
             var county = await _countyService.GetByNameAsync(patchDoc.County);
             if (county == null)
             {
-                return BadRequest($"County: {patchDoc.County} 不在選項中");
+                throw new BadRequestException($"County: {patchDoc.County} 不在選項中");
             }
         }   
 
@@ -220,14 +221,14 @@ public class UserController : BaseController
             user => user.Area);
         if (user == null)
         {
-            return BadRequest("帳號或密碼錯誤");
+            throw new BadRequestException("帳號或密碼錯誤");
         }
 
         // 驗證密碼
         var passwordValid = _passwordHasher.VerifyHashedPassword(user.HashedPassword, userSignInDto.Password);
         if (!passwordValid)
         {
-            return Unauthorized("帳號或密碼錯誤");
+            throw new UnauthorizedException("帳號或密碼錯誤");
         }
 
         // 轉換為 UserDTO 回傳
@@ -257,12 +258,7 @@ public class UserController : BaseController
     {
         if (await _userService.GetUserByEmailAsync(signUpDTO.Email.ToLower()) != null)
         {
-            return BadRequest("此電子郵件已被註冊");
-        }
-
-        if (!ModelState.IsValid)
-        {
-            return BadRequest(ModelState);
+            throw new BadRequestException("此電子郵件已被註冊");
         }
 
         var user = _mapper.Map<User>(signUpDTO);
@@ -304,25 +300,25 @@ public class UserController : BaseController
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> UploadAvatar(IFormFile file)
     {
-        var userId = (Guid)ViewData["UserId"];
+        var userId = (Guid?)ViewData["UserId"] ?? Guid.Empty;
         var user = await _userService.GetByIdAsync(userId, user => user.Avatar);
 
         // 確認 User 存在
         if (user == null)
         {
-            return NotFound("User not found.");
+            throw new UserNotFoundException();
         }
 
         // 確認有選擇檔案
         if (file == null || file.Length == 0)
         {
-            return BadRequest("未選擇檔案");
+            throw new BadRequestException("未選擇檔案");
         }
 
         // 檢查檔案類型
         if (!DataHelper.IsImage(file))
         {
-            return BadRequest("不支援此類型檔案");
+            throw new BadRequestException("不支援此類型檔案");
         }
 
         // 確認是否有 Avatar
@@ -384,19 +380,19 @@ public class UserController : BaseController
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> DeleteAvatar()
     {
-        var userId = (Guid)ViewData["UserId"];
+        var userId = (Guid?)ViewData["UserId"] ?? Guid.Empty;
         var user = await _userService.GetByIdAsync(userId, user => user.Avatar);
 
         // 確認 User 存在
         if (user == null)
         {
-            return NotFound("找不到指定的使用者。");
+            throw new UserNotFoundException();
         }
 
         // 確認 User 已有頭像
         if (user.Avatar == null)
         {
-            return BadRequest("使用者尚未設定頭像。");
+            throw new BadRequestException("使用者尚未設定頭像。");
         }
 
         // 刪除檔案
@@ -410,7 +406,7 @@ public class UserController : BaseController
         user.Avatar = null;
         _userService.Update(user);
         await _userService.SaveChangesAsync();
-        return Ok("成功刪除使用者頭像。");
+        return Ok("成功刪除使用者頭像");
     }
 
     /// <summary>
@@ -427,10 +423,10 @@ public class UserController : BaseController
         var user = await _userService.GetByIdAsync(userId, user => user.Avatar);
 
         if (user == null)
-            return NotFound();
+            throw new UserNotFoundException();
 
         if (user.Avatar == null)
-            return NotFound("我還沒做好默認頭貼");
+            throw new NotFoundException("我還沒做好默認頭貼");
 
         string filePath = user.Avatar.FilePath;
         string contentType = user.Avatar.FileType;
@@ -438,7 +434,7 @@ public class UserController : BaseController
         // 檢查檔案是否存在
         if (!System.IO.File.Exists(filePath))
         {
-            return NotFound("檔案不存在");
+            throw new NotFoundException("檔案不存在");
         }
 
         // 設定回傳結果
@@ -465,7 +461,7 @@ public class UserController : BaseController
         var user = await _userService.GetByIdAsync(id);
         if (user == null)
         {
-            return NotFound();
+            throw new UserNotFoundException();
         }
         _userService.Delete(user);
         await _userService.SaveChangesAsync();
@@ -486,11 +482,11 @@ public class UserController : BaseController
     [Produces("application/json")]
     public async Task<ActionResult> VerifyEmail(string verifyCode)
     {
-        var userId = (Guid)ViewData["UserId"];
+        var userId = (Guid?)ViewData["UserId"] ?? Guid.Empty;
         // 檢查參數是否為 null 或空字串
         if (string.IsNullOrEmpty(verifyCode))
         {
-            return BadRequest();
+            throw new BadRequestException("verifyCode 不得為空");
         }
 
         // 驗證電子郵件驗證碼
@@ -498,13 +494,13 @@ public class UserController : BaseController
             user => user.UserEmailVerifications);
         if (user == null)
         {
-            return Unauthorized();
+            throw new UserNotFoundException();
         }
 
         var result = _userService.VerifyVerificationCode(user, verifyCode);
         if (!result)
         {
-            return BadRequest("驗證碼不正確或已失效");
+            throw new BadRequestException("驗證碼不正確或已失效");
         }
         user.Verified = true;
         _userService.Update(user);
@@ -525,13 +521,13 @@ public class UserController : BaseController
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<ActionResult> ResendVerifyEmail()
     {
-        var userId = (Guid)ViewData["UserId"];
+        var userId = (Guid?)ViewData["UserId"] ?? Guid.Empty;
 
         // 驗證電子郵件驗證碼
         var user = await _userService.GetByIdAsync(userId);
         if (user == null)
         {
-            return Unauthorized();
+            throw new UserNotFoundException();
         }
 
         // 發送驗證電子郵件
@@ -541,7 +537,4 @@ public class UserController : BaseController
         await _emailService.SendEmailAsync(user.Email, subject, message);
         return Ok();
     }
-
-
-    
 }

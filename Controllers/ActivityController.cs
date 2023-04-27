@@ -1,4 +1,5 @@
-﻿using ActiverWebAPI.Models.DBEntity;
+﻿using ActiverWebAPI.Exceptions;
+using ActiverWebAPI.Models.DBEntity;
 using ActiverWebAPI.Models.DTO;
 using ActiverWebAPI.Services.ActivityServices;
 using ActiverWebAPI.Services.UserServices;
@@ -46,8 +47,6 @@ public class ActivityController : BaseController
     public async Task<ActionResult<List<ActivityDTO>>?> GetAllActivities()
     {
         var activities = await _activityService.GetAllActivitiesIncludeAll().ToListAsync();
-        if (activities == null)
-            return null;
         var result = _mapper.Map<List<ActivityDTO>>(activities);
         return result;
     }
@@ -66,7 +65,7 @@ public class ActivityController : BaseController
     {
         var activity = await _activityService.GetActivityIncludeAllByIdAsync(id);
         if (activity == null)
-            return NotFound("活動不存在");
+            throw new NotFoundException("活動不存在");
 
         // 封裝活動
         var activityDTO = _mapper.Map<ActivityDTO>(activity);
@@ -74,7 +73,7 @@ public class ActivityController : BaseController
         // 如果使用者有驗證，查看已投票的 Tag
         if (User.Identity.IsAuthenticated)
         {
-            var userId = Guid.Parse(HttpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+            var userId = (Guid?)ViewData["UserId"] ?? Guid.Empty;
             var userVotedTags = activity.UserVoteTagInActivity.Where(x => x.UserId.Equals(userId)).Select(x => x.Tag.Id).ToList();
             activityDTO.Tags.ForEach(x =>
             {
@@ -102,7 +101,7 @@ public class ActivityController : BaseController
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<ActionResult<List<ActivityDTO>>> PostActivities(List<ActivityPostDTO> activityPostDTOs)
     {
-        var activities = _mapper.Map<List<Models.DBEntity.Activity>>(activityPostDTOs);
+        var activities = _mapper.Map<List<Activity>>(activityPostDTOs);
         await _activityService.AddRangeAsync(activities);
         await _activityService.SaveChangesAsync();
         var activityDTOs = _mapper.Map<List<ActivityDTO>>(activities);
@@ -127,7 +126,7 @@ public class ActivityController : BaseController
     [ProducesResponseType(404)]
     public async Task<ActionResult<SegmentsResponseDTO<ActivityDTO>>> GetManageActivities([FromQuery] ManageActivitySegmentDTO segmentRequest)
     {
-        var userId = (Guid)ViewData["UserId"];
+        var userId = (Guid?)ViewData["UserId"] ?? Guid.Empty;
         var user = await _userService.GetByIdAsync(userId,
             u => u.ActivityStatus,
             u => u.ActivityStatus.Select(a => a.Activity)
@@ -136,7 +135,7 @@ public class ActivityController : BaseController
         // 確認 User 存在
         if (user == null)
         {
-            return NotFound("User not found.");
+            throw new UserNotFoundException();
         }
 
         var activityIDs = user.ActivityStatus.Select(a => a.ActivityId).ToList();
@@ -150,7 +149,7 @@ public class ActivityController : BaseController
 
         if(segmentRequest.Page > totalPage)
         {
-            return BadRequest($"請求的頁數({segmentRequest.Page})大於總頁數({totalPage})");
+            throw new BadRequestException($"請求的頁數({segmentRequest.Page})大於總頁數({totalPage})");
         }
 
         var orderedActivityList = DataHelper.GetSortedAndPagedData(activityList, segmentRequest.SortBy, segmentRequest.OrderBy, segmentRequest.Page, segmentRequest.CountPerPage);
@@ -192,7 +191,7 @@ public class ActivityController : BaseController
 
         if (segmentRequest.Page > totalPage)
         {
-            return BadRequest($"請求的頁數({segmentRequest.Page})大於總頁數({totalPage})");
+            throw new BadRequestException($"請求的頁數({segmentRequest.Page})大於總頁數({totalPage})");
         }
 
         var orderedActivityList = DataHelper.GetSortedAndPagedData(activityList, "ActivityClickedCount", segmentRequest.OrderBy, segmentRequest.Page, segmentRequest.CountPerPage);
@@ -218,13 +217,13 @@ public class ActivityController : BaseController
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult> PostActivityStatus(Guid activityId, string status)
     {
-        var userId = (Guid)ViewData["UserId"];
+        var userId = (Guid?)ViewData["UserId"] ?? Guid.Empty;
         var user = await _userService.GetByIdAsync(userId);
 
         // 確認 User 存在
         if (user == null)
         {
-            return NotFound("User not found.");
+            throw new UserNotFoundException();
         }
 
         var activity = await _activityService.GetByIdAsync(activityId);
@@ -232,7 +231,7 @@ public class ActivityController : BaseController
         // 確認 Branch 存在
         if (activity == null)
         {
-            return NotFound("Branch not found.");
+            throw new NotFoundException("Branch not found.");
         }
 
         var userActivityStatusFind = user.ActivityStatus?.Find(x => x.ActivityId == activity.Id);

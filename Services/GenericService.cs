@@ -115,8 +115,11 @@ public class GenericService<TEntity, TKey> : IGenericService<TEntity, TKey> wher
             query = query.Include(include);
         }
 
-        return await query.FirstOrDefaultAsync(e => e.Id.Equals(id));
+        var entity = await query.FirstOrDefaultAsync(e => e.Id.Equals(id));
+
+        return entity;
     }
+
 
     /// <inheritdoc />
     public async Task LoadCollectionAsync<TProperty>(TEntity entity, Expression<Func<TEntity, IEnumerable<TProperty>>> navigationProperty)
