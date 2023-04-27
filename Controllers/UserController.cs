@@ -128,7 +128,7 @@ public class UserController : BaseController
         // 更新 Username
         if (!string.IsNullOrEmpty(patchDoc.Username))
         {
-            user.NickName = patchDoc.Username;
+            user.Username = patchDoc.Username;
         }
 
         // 更新性別

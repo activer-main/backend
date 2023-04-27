@@ -18,10 +18,10 @@ public class User : BaseEntity, IEntity<Guid>
     public bool Verified { get; set; } = false;
 
     [MaxLength(124)]
-    public string? NickName { get; set; }
+    public string? Username { get; set; }
 
     [MaxLength(124)]
-    public string? RealName { get; set; }
+    public string? Realname { get; set; }
 
     public int Gender { get; set; } = (int) Enums.UserGender.Undefined;
 
