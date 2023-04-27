@@ -64,7 +64,6 @@ builder.Services.AddScoped<ActivityService>();
 builder.Services.AddScoped<TokenService>();
 builder.Services.AddSingleton<IPasswordHasher, PasswordHasher>();
 builder.Services.AddScoped<IEmailService, EmailService>();
-builder.Services.AddScoped<EmailVerificationAttribute>();
 builder.Services.AddScoped<ErrorHandlingMiddleware>();
 
 // AutoMapper

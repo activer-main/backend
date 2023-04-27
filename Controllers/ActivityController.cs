@@ -9,8 +9,6 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.CodeAnalysis;
 using Microsoft.EntityFrameworkCore;
-using System.Reflection;
-using System.Security.Claims;
 
 namespace ActiverWebAPI.Controllers;
 
