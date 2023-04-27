@@ -64,6 +64,7 @@ builder.Services.AddScoped<TokenService>();
 builder.Services.AddSingleton<IPasswordHasher, PasswordHasher>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddTransient<IMiddleware, EmailVerificationMiddleware>();
+builder.Services.AddTransient<IMiddleware, ErrorHandlingMiddleware>();
 
 // AutoMapper
 builder.Services.AddAutoMapper(
@@ -72,7 +73,8 @@ builder.Services.AddAutoMapper(
         builder.Services.BuildServiceProvider().GetService<IConfiguration>(),
         builder.Services.BuildServiceProvider().GetService<IUnitOfWork>()
         )),
-        AppDomain.CurrentDomain.GetAssemblies());
+        AppDomain.CurrentDomain.GetAssemblies()
+);
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
