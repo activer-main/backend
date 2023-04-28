@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.CodeAnalysis;
 using Microsoft.EntityFrameworkCore;
+using System.Diagnostics;
 
 namespace ActiverWebAPI.Controllers;
 
@@ -41,15 +42,29 @@ public class ActivityController : BaseController
     /// <returns>所有活動列表</returns>
     /// <response code="200">成功取得所有活動列表</response>
     /// <response code="401">未經授權的訪問</response>
-    [Authorize(Roles = "Admin, InternalUser")]
+    [AllowAnonymous]
     [HttpGet]
     [Produces("application/json")]
     [ProducesResponseType(typeof(List<ActivityDTO>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public async Task<ActionResult<List<ActivityDTO>>?> GetAllActivities()
+    public async Task<ActionResult<List<ActivityDTO>>?> GetAllActivities([FromQuery] SegmentsRequestDTO segmentRequest)
     {
         var activities = await _activityService.GetAllActivitiesIncludeAll().ToListAsync();
-        var result = _mapper.Map<List<ActivityDTO>>(activities);
+
+        var totalCount = activities.Count;
+        var totalPage = (totalCount / segmentRequest.CountPerPage) + 1;
+
+        if (segmentRequest.Page > totalPage)
+        {
+            throw new BadRequestException($"請求的頁數({segmentRequest.Page})大於總頁數({totalPage})");
+        }
+
+        segmentRequest.SortBy ??= "CreateAt";
+        segmentRequest.OrderBy ??= "descending";
+
+        var orderedActivityList = DataHelper.GetSortedAndPagedData(activities, segmentRequest.SortBy, segmentRequest.OrderBy, segmentRequest.Page, segmentRequest.CountPerPage);
+
+        var result = _mapper.Map<List<ActivityDTO>>(orderedActivityList);
         return result;
     }
 
