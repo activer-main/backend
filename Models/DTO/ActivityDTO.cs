@@ -7,6 +7,7 @@ public class ActivityDTO
     public string Title { get; set; }
     public string? SubTitle { get; set; }
     public string Content { get; set; }
+    public string? Html { get; set; }
     public string? Status { get; set; }
     public List<string>? Fee { get; set; }
     public List<string>? Images { get; set; }
@@ -23,6 +24,7 @@ public class ActivityPostDTO
     public string Title { get; set; }
     public string? SubTitle { get; set; }
     public string Content { get; set; }
+    public string? Html { get; set; }
     public List<string>? Images { get; set; }
     public List<string>? Connections { get; set; }
     public List<string>? Holders { get; set; }

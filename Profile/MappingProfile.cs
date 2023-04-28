@@ -32,6 +32,7 @@ public class MappingProfile : Profile
             .ForMember(dest => dest.Branches, opt => opt.MapFrom(src => src.Branches));
         CreateMap<Branch, BranchDTO>()
             .ForMember(dest => dest.Location, opt => opt.MapFrom(src => src.Location == null ? null : src.Location.Select(x => x.Content)));
+        CreateMap<BranchDate, BranchDateDTO>();
 
         CreateMap<SegmentsRequestBaseDTO, SegmentsResponseBaseDTO<ActivityDTO>>()
             .ForMember(dest => dest.TotalPage, opt => opt.Ignore())
@@ -47,6 +48,8 @@ public class MappingProfile : Profile
             .ForMember(dest => dest.TotalPage, opt => opt.Ignore())
             .ForMember(dest => dest.TotalData, opt => opt.Ignore())
             .ForMember(dest => dest.SearchData, opt => opt.Ignore());
+
+        CreateMap<TagPostDTO, Tag>();
     }
 
     public MappingProfile(
@@ -68,18 +71,17 @@ public class MappingProfile : Profile
             .ForMember(dest => dest.EmailVerified, opt => opt.MapFrom(src => src.Verified))
             .ForMember(dest => dest.Gender, opt => opt.MapFrom(src => ((UserGender)src.Gender).ToString()))
             .ForMember(dest => dest.Birthday, opt => opt.MapFrom(src => src.BrithDay == null ? null : src.BrithDay.Value.ToShortDateString()));
-
-        CreateMap<ActivityPostDTO, Activity>()
-                        .ForMember(dest => dest.Images, opt => opt.MapFrom(src => src.Images == null ? null : src.Images.Select(x => new Image { ImageURL = x })))
-                        .ForMember(dest => dest.Sources, opt => opt.MapFrom(src => src.Sources == null ? null : src.Sources.Select(x => new Source { SourceURL = x })))
-                        .ForMember(dest => dest.Connections, opt => opt.MapFrom(src => src.Connections == null ? null : MapConnectionsAsync(src.Connections).Result))
-                        .ForMember(dest => dest.Holders, opt => opt.MapFrom(src => src.Holders == null ? null : MapHoldersAsync(src.Holders).Result))
-                        .ForMember(dest => dest.Objectives, opt => opt.MapFrom(src => src.Objectives == null ? null : MapObjectivesAsync(src.Objectives).Result))
-                        .ForMember(dest => dest.Tags, opt => opt.MapFrom(src => src.Tags == null ? null : MapTagsAsync(src.Tags).Result))
-                        .ForMember(dest => dest.Branches, opt => opt.MapFrom(src => src.Branches));
+        CreateMap<BranchDateDTO, BranchDate>();
         CreateMap<BranchPostDTO, Branch>()
-                        .ForMember(dest => dest.Location, opt => opt.MapFrom(src => MapLocationsAsync(src.Location).Result))
-                        ;
+            .ForMember(dest => dest.Location, opt => opt.MapFrom(src => src.Location == null ? null : MapLocationsAsync(src.Location).Result));
+        CreateMap<ActivityPostDTO, Activity>()
+            .ForMember(dest => dest.Images, opt => opt.MapFrom(src => src.Images == null ? null : src.Images.Select(x => new Image { ImageURL = x })))
+            .ForMember(dest => dest.Sources, opt => opt.MapFrom(src => src.Sources == null ? null : src.Sources.Select(x => new Source { SourceURL = x })))
+            .ForMember(dest => dest.Connections, opt => opt.MapFrom(src => src.Connections == null ? null : MapConnectionsAsync(src.Connections).Result))
+            .ForMember(dest => dest.Holders, opt => opt.MapFrom(src => src.Holders == null ? null : MapHoldersAsync(src.Holders).Result))
+            .ForMember(dest => dest.Tags, opt => opt.MapFrom(src => src.Tags == null ? null : MapTagsAsync(src.Tags).Result))
+            .ForMember(dest => dest.Branches, opt => opt.MapFrom(src => src.Branches))
+            .ForMember(dest => dest.Objectives, opt => opt.MapFrom(src => src.Objectives == null ? null : MapObjectivesAsync(src.Objectives).Result));
     }
 
     private async Task<List<Connection>> MapConnectionsAsync(IEnumerable<string> connections)
@@ -150,7 +152,13 @@ public class MappingProfile : Profile
                 .FirstOrDefaultAsync();
 
             if (tag == null)
-                result.Add(new Tag { Text = x.Text, Type = x.Type });
+            {
+                var newTag = new Tag { Text = x.Text, Type = x.Type };
+                //_unitOfWork.Repository<Tag, int>().Add(newTag);
+                //_unitOfWork.SaveChanges();
+                result.Add(newTag);
+            }
+                
             else
                 result.Add(tag);
         }
@@ -169,7 +177,11 @@ public class MappingProfile : Profile
                 .FirstOrDefaultAsync();
 
             if (location == null)
-                result.Add(new Location { Content = x });
+            {
+                var newLoc = new Location { Content = x };
+                //_unitOfWork.Repository<Location, int>().Add(newLoc);
+                result.Add(newLoc);
+            }
             else
                 result.Add(location);
         }

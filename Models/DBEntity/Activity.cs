@@ -14,8 +14,9 @@ public class Activity : BaseEntity, IEntity<Guid>
 
     [Column(TypeName = "text")]
     public string Content { get; set; }
+
     [Column(TypeName = "text")]
-    public string Html { get; set; }
+    public string? Html { get; set; }
     public int ActivityClickedCount { get; set; } = 0;
 
     public List<ActivityFee> Fee { get; set; }
@@ -90,8 +91,8 @@ public class Branch : BaseEntity, IEntity<int>
 {
     public int Id { get; set; }
     public string BranchName { get; set; }
-    public List<BranchDate> Date { get; set; }
-    public List<Location> Location { get; set; }
+    public List<BranchDate>? Date { get; set; }
+    public List<Location>? Location { get; set; }
 
     public Guid ActivityId { get; set; }
     [JsonIgnore]
@@ -143,15 +144,14 @@ public class BranchDate : BaseEntity, IEntity<int>
     [Key]
     public int Id { get; set; }
     public string Name { get; set; }
-    public DateTime? Start { get; set; }
-    public DateTime? End { get; set; }
+    public string? Start { get; set; }
+    public string? End { get; set; }
 
     public int BranchId { get; set; }
     [JsonIgnore]
     public Branch Branch { get; set; }
 }
 
-[Index(nameof(Content), IsUnique = true)]
 public class Location : BaseEntity, IEntity<int>
 {
     public int Id { get; set; }

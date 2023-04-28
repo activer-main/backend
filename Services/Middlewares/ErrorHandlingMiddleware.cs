@@ -42,7 +42,7 @@ public class ErrorHandlingMiddleware : IMiddleware
             code = HttpStatusCode.BadRequest;
 
         // 根據需要添加更多狀態碼的處理邏輯
-        var result = JsonConvert.SerializeObject(new { statusCode = code, message = exception.Message });
+        var result = JsonConvert.SerializeObject(new { statusCode = code, message = exception.Message, innerException = exception?.InnerException });
         context.Response.ContentType = "application/json";
         context.Response.StatusCode = (int) code;
         return context.Response.WriteAsync(result);

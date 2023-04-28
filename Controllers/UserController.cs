@@ -12,7 +12,6 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 using System.Globalization;
-using System.Security.Claims;
 
 namespace ActiverWebAPI.Controllers;
 
@@ -293,7 +292,7 @@ public class UserController : BaseController
     /// <response code="401">未授權的存取</response>
     /// <response code="404">找不到使用者</response>
     [Authorize]
-    [EmailVerification]
+    [TypeFilter(typeof(EmailVerificationActionFilter))]
     [HttpPost("avatar")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -362,7 +361,7 @@ public class UserController : BaseController
         // 更新使用者資料庫中的圖片
         user.Avatar = avatar;
         _userService.Update(user);
-
+        await _userService.SaveChangesAsync();
         return Ok("檔案上傳成功");
     }
 
@@ -374,7 +373,7 @@ public class UserController : BaseController
     /// <response code="401">未授權的請求</response>
     /// <response code="404">找不到指定的使用者</response>
     [Authorize]
-    [EmailVerification]
+    [TypeFilter(typeof(EmailVerificationActionFilter))]
     [HttpDelete("avatar")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]

@@ -6,6 +6,7 @@ using ActiverWebAPI.Services;
 using ActiverWebAPI.Services.ActivityServices;
 using ActiverWebAPI.Services.Filters;
 using ActiverWebAPI.Services.Middlewares;
+using ActiverWebAPI.Services.TagServices;
 using ActiverWebAPI.Services.UnitOfWork;
 using ActiverWebAPI.Services.UserServices;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -58,13 +59,13 @@ builder.Services.AddScoped(typeof(IGenericService<,>), typeof(GenericService<,>)
 builder.Services.AddScoped<UserService>();
 builder.Services.AddScoped<BranchService>();
 builder.Services.AddScoped<AreaService>();
+builder.Services.AddScoped<TagService>();
 builder.Services.AddScoped<ProfessionService>();
 builder.Services.AddScoped<CountyService>();
 builder.Services.AddScoped<ActivityService>();
 builder.Services.AddScoped<TokenService>();
 builder.Services.AddSingleton<IPasswordHasher, PasswordHasher>();
 builder.Services.AddScoped<IEmailService, EmailService>();
-builder.Services.AddScoped<EmailVerificationAttribute>();
 builder.Services.AddScoped<ErrorHandlingMiddleware>();
 
 // AutoMapper
