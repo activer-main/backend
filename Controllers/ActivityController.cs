@@ -194,6 +194,8 @@ public class ActivityController : BaseController
             throw new BadRequestException($"請求的頁數({segmentRequest.Page})大於總頁數({totalPage})");
         }
 
+        segmentRequest.OrderBy ??= "descending";
+
         var orderedActivityList = DataHelper.GetSortedAndPagedData(activityList, "ActivityClickedCount", segmentRequest.OrderBy, segmentRequest.Page, segmentRequest.CountPerPage);
         var activityDTOList = _mapper.Map<List<ActivityDTO>>(orderedActivityList);
         var SegmentResponse = _mapper.Map<SegmentsResponseBaseDTO<ActivityDTO>>(segmentRequest);
