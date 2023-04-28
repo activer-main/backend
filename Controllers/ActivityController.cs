@@ -111,6 +111,7 @@ public class ActivityController : BaseController
         {
             var tags = activity.Tags;
             activity.Tags = null; // 先將該 activity 的 Tags 屬性設為 null
+            activity.Branches.ForEach(b => b.Location = null); // 先將該 activity branch 的 location 屬性設為 null
 
             await _activityService.AddAsync(activity); // 新增 activity 到資料庫
 
