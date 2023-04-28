@@ -118,7 +118,7 @@ public class ActivityController : BaseController
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<ActionResult<List<ActivityDTO>>> PostActivities(List<ActivityPostDTO> activityPostDTOs)
     {
-        var activities = _mapper.Map<List<Activity>>(activityPostDTOs);
+        var activities = _mapper.Map<List<Models.DBEntity.Activity>>(activityPostDTOs);
         _activityService.RemoveRange(_activityService.GetAll());
         await _activityService.SaveChangesAsync();
 
