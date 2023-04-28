@@ -104,6 +104,8 @@ public class ActivityController : BaseController
     public async Task<ActionResult<List<ActivityDTO>>> PostActivities(List<ActivityPostDTO> activityPostDTOs)
     {
         var activities = _mapper.Map<List<Activity>>(activityPostDTOs);
+        _activityService.RemoveRange(_activityService.GetAll());
+        await _activityService.SaveChangesAsync();
 
         foreach (var activity in activities)
         {
@@ -112,12 +114,13 @@ public class ActivityController : BaseController
 
             await _activityService.AddAsync(activity); // 新增 activity 到資料庫
 
-            //activity.Tags = tags; // 再將原本的 Tags 屬性設回
+            //activity.Tags = tags.Select(t => _tagService.GetById(t.Id)).Where(x => x != null).ToList(); // 再將原本的 Tags 屬性設回
 
             //_activityService.Update(activity); // 更新 activity 到資料庫
+            //await _activityService.SaveChangesAsync();
         }
-
         await _activityService.SaveChangesAsync();
+
 
         var activityDTOs = _mapper.Map<List<ActivityDTO>>(activities);
         return activityDTOs;

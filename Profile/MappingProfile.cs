@@ -154,7 +154,8 @@ public class MappingProfile : Profile
             if (tag == null)
             {
                 var newTag = new Tag { Text = x.Text, Type = x.Type };
-                _unitOfWork.Repository<Tag, int>().Add(newTag);
+                //_unitOfWork.Repository<Tag, int>().Add(newTag);
+                //_unitOfWork.SaveChanges();
                 result.Add(newTag);
             }
                 
@@ -176,7 +177,11 @@ public class MappingProfile : Profile
                 .FirstOrDefaultAsync();
 
             if (location == null)
-                result.Add(new Location { Content = x });
+            {
+                var newLoc = new Location { Content = x };
+                //_unitOfWork.Repository<Location, int>().Add(newLoc);
+                result.Add(newLoc);
+            }
             else
                 result.Add(location);
         }
