@@ -14,8 +14,9 @@ public class Activity : BaseEntity, IEntity<Guid>
 
     [Column(TypeName = "text")]
     public string Content { get; set; }
+
     [Column(TypeName = "text")]
-    public string Html { get; set; }
+    public string? Html { get; set; }
     public int ActivityClickedCount { get; set; } = 0;
 
     public List<ActivityFee> Fee { get; set; }
