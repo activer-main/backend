@@ -152,7 +152,6 @@ public class BranchDate : BaseEntity, IEntity<int>
     public Branch Branch { get; set; }
 }
 
-[Index(nameof(Content), IsUnique = true)]
 public class Location : BaseEntity, IEntity<int>
 {
     public int Id { get; set; }

@@ -2,6 +2,7 @@
 using ActiverWebAPI.Models.DBEntity;
 using ActiverWebAPI.Models.DTO;
 using ActiverWebAPI.Services.ActivityServices;
+using ActiverWebAPI.Services.TagServices;
 using ActiverWebAPI.Services.UserServices;
 using ActiverWebAPI.Utils;
 using AutoMapper;
@@ -18,16 +19,19 @@ public class ActivityController : BaseController
 {
     private readonly ActivityService _activityService;
     private readonly UserService _userService;
+    private readonly TagService _tagService;
     private readonly IMapper _mapper;
 
     public ActivityController(
         ActivityService activityService,
         UserService userService,
+        TagService tagService,
         IMapper mapper
     )
     {
         _activityService = activityService;
         _userService = userService;
+        _tagService = tagService;
         _mapper = mapper;
     }
 
@@ -100,8 +104,21 @@ public class ActivityController : BaseController
     public async Task<ActionResult<List<ActivityDTO>>> PostActivities(List<ActivityPostDTO> activityPostDTOs)
     {
         var activities = _mapper.Map<List<Activity>>(activityPostDTOs);
-        await _activityService.AddRangeAsync(activities);
+
+        foreach (var activity in activities)
+        {
+            var tags = activity.Tags;
+            activity.Tags = null; // 先將該 activity 的 Tags 屬性設為 null
+
+            await _activityService.AddAsync(activity); // 新增 activity 到資料庫
+
+            //activity.Tags = tags; // 再將原本的 Tags 屬性設回
+
+            //_activityService.Update(activity); // 更新 activity 到資料庫
+        }
+
         await _activityService.SaveChangesAsync();
+
         var activityDTOs = _mapper.Map<List<ActivityDTO>>(activities);
         return activityDTOs;
     }

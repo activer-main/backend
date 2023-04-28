@@ -48,6 +48,8 @@ public class MappingProfile : Profile
             .ForMember(dest => dest.TotalPage, opt => opt.Ignore())
             .ForMember(dest => dest.TotalData, opt => opt.Ignore())
             .ForMember(dest => dest.SearchData, opt => opt.Ignore());
+
+        CreateMap<TagPostDTO, Tag>();
     }
 
     public MappingProfile(
@@ -71,7 +73,7 @@ public class MappingProfile : Profile
             .ForMember(dest => dest.Birthday, opt => opt.MapFrom(src => src.BrithDay == null ? null : src.BrithDay.Value.ToShortDateString()));
         CreateMap<BranchDateDTO, BranchDate>();
         CreateMap<BranchPostDTO, Branch>()
-            .ForMember(dest => dest.Location, opt => opt.MapFrom(src => MapLocationsAsync(src.Location).Result));
+            .ForMember(dest => dest.Location, opt => opt.MapFrom(src => src.Location == null ? null : MapLocationsAsync(src.Location).Result));
         CreateMap<ActivityPostDTO, Activity>()
             .ForMember(dest => dest.Images, opt => opt.MapFrom(src => src.Images == null ? null : src.Images.Select(x => new Image { ImageURL = x })))
             .ForMember(dest => dest.Sources, opt => opt.MapFrom(src => src.Sources == null ? null : src.Sources.Select(x => new Source { SourceURL = x })))
@@ -150,7 +152,12 @@ public class MappingProfile : Profile
                 .FirstOrDefaultAsync();
 
             if (tag == null)
-                result.Add(new Tag { Text = x.Text, Type = x.Type });
+            {
+                var newTag = new Tag { Text = x.Text, Type = x.Type };
+                _unitOfWork.Repository<Tag, int>().Add(newTag);
+                result.Add(newTag);
+            }
+                
             else
                 result.Add(tag);
         }
