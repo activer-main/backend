@@ -91,8 +91,8 @@ public class Branch : BaseEntity, IEntity<int>
 {
     public int Id { get; set; }
     public string BranchName { get; set; }
-    public List<BranchDate> Date { get; set; }
-    public List<Location> Location { get; set; }
+    public List<BranchDate>? Date { get; set; }
+    public List<Location>? Location { get; set; }
 
     public Guid ActivityId { get; set; }
     [JsonIgnore]
