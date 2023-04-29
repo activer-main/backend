@@ -104,8 +104,6 @@ public class ActivityController : BaseController
     public async Task<ActionResult<List<ActivityDTO>>> PostActivities(List<ActivityPostDTO> activityPostDTOs)
     {
         var activities = _mapper.Map<List<Activity>>(activityPostDTOs);
-        _activityService.RemoveRange(_activityService.GetAll());
-        await _activityService.SaveChangesAsync();
 
         foreach (var activity in activities)
         {

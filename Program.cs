@@ -68,6 +68,17 @@ builder.Services.AddSingleton<IPasswordHasher, PasswordHasher>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<ErrorHandlingMiddleware>();
 
+// CORS
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("DevCorsPolicy", builder =>
+    {
+        builder.AllowAnyOrigin()
+               .AllowAnyMethod()
+               .AllowAnyHeader();
+    });
+});
+
 // AutoMapper
 builder.Services.AddAutoMapper(
     cfg => cfg.AddProfile(new MappingProfile(
@@ -105,6 +116,7 @@ if (app.Environment.IsDevelopment())
 // Middlewares
 app.UseMiddleware<ErrorHandlingMiddleware>();
 
+app.UseCors("DevCorsPolicy");
 app.UseStaticFiles();
 app.UseHttpsRedirection();
 
