@@ -19,6 +19,10 @@ public class UnauthorizedException : Exception
     {
 
     }
+
+    public UnauthorizedException(string message, Exception innerException) : base(message, innerException)
+    {
+    }
 }
 
 public class BadRequestException : Exception
@@ -26,6 +30,10 @@ public class BadRequestException : Exception
     public BadRequestException(string message) : base(message)
     {
 
+    }
+
+    public BadRequestException(string message, Exception innerException) : base(message, innerException)
+    {
     }
 }
 
