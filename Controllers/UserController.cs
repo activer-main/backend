@@ -50,6 +50,14 @@ public class UserController : BaseController
         _countyService = countyService;
     }
 
+    [AllowAnonymous]
+    [HttpGet("isEmailValid")]
+    public async Task<ActionResult<bool>> IsEmailValid(string Email)
+    {
+        var user = await _userService.GetUserByEmailAsync(Email);
+        return Ok(user != null);
+    }
+
     /// <summary>
     /// 使用者資訊清單
     /// </summary>
