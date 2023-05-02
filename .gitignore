@@ -366,5 +366,6 @@ FodyWeavers.xsd
 Migrations/
 
 # Srouces
-wwwroot/
-/appsettings.json
+# wwwroot/
+wwwroot/avatars/*
+# /appsettings.json
