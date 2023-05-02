@@ -152,7 +152,7 @@ public class UserController : BaseController
         // 更新生日
         if (patchDoc.Birthday != null)
         {
-            user.BrithDay = DateTime.ParseExact(patchDoc.Birthday, "yyyy-MM-dd", CultureInfo.InvariantCulture);
+            user.Birthday = DateTime.ParseExact(patchDoc.Birthday, "yyyy-MM-dd", CultureInfo.InvariantCulture);
         }
 
         // 更新職業
@@ -300,7 +300,7 @@ public class UserController : BaseController
     /// <response code="401">未授權的存取</response>
     /// <response code="404">找不到使用者</response>
     [Authorize]
-    [TypeFilter(typeof(EmailVerificationActionFilter))]
+    //[TypeFilter(typeof(EmailVerificationActionFilter))]
     [HttpPost("avatar")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -344,7 +344,7 @@ public class UserController : BaseController
         var fileName = $"{Guid.NewGuid()}{Path.GetExtension(file.FileName)}";
 
         // 設定檔案路徑
-        var filePath = Path.Combine(_env.WebRootPath, "avatars", fileName);
+        var filePath = Path.Combine(_env.   , "avatars", fileName);
 
         // 確認路徑是否存在
         if (!Directory.Exists(Path.GetDirectoryName(filePath)))

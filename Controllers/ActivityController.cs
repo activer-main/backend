@@ -215,7 +215,7 @@ public class ActivityController : BaseController
     [HttpGet("trend")]
     [ProducesResponseType(typeof(SegmentsResponseDTO<ActivityDTO>), StatusCodes.Status200OK)]
     [Produces("application/json")]
-    public async Task<ActionResult<SegmentsResponseDTO<ActivityDTO>>> GetTrendActivities([FromQuery] SegmentsRequestBaseDTO segmentRequest)
+    public async Task<ActionResult<SegmentsResponseBaseDTO<ActivityDTO>>> GetTrendActivities([FromQuery] SegmentsRequestBaseDTO segmentRequest)
     {
         var activityList = _activityService.GetAllActivitiesIncludeAll();
         var totalCount = activityList.Count();

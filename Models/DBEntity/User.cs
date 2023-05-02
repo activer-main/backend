@@ -32,7 +32,7 @@ public class User : BaseEntity, IEntity<Guid>
     public string? Phone { get; set; }
 
     [DataType(DataType.Date)]
-    public DateTime? BrithDay { get; set; }
+    public DateTime? Birthday { get; set; }
 
     public Avatar? Avatar { get; set; }
     public int? AvatarId { get; set; }

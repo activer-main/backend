@@ -8,6 +8,9 @@ using Microsoft.Extensions.Configuration;
 using ActiverWebAPI.Enums;
 using ActiverWebAPI.Interfaces.UnitOfWork;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Http;
+using static System.Runtime.InteropServices.JavaScript.JSType;
+using System.Globalization;
 
 public class MappingProfile : Profile
 {
@@ -69,8 +72,8 @@ public class MappingProfile : Profile
             .ForMember(dest => dest.Professions, opt => opt.MapFrom(src => src.Professions == null ? null : src.Professions.Select(x => new UserProfessionDTO { Id = x.Id, Profession = x.Content }).ToList()))
             .ForMember(dest => dest.County, opt => opt.MapFrom(src => src.County == null ? null : src.County.Content))
             .ForMember(dest => dest.EmailVerified, opt => opt.MapFrom(src => src.Verified))
-            .ForMember(dest => dest.Gender, opt => opt.MapFrom(src => ((UserGender)src.Gender).ToString()))
-            .ForMember(dest => dest.Birthday, opt => opt.MapFrom(src => src.BrithDay == null ? null : src.BrithDay.Value.ToShortDateString()));
+        .ForMember(dest => dest.Gender, opt => opt.MapFrom(src => ((UserGender)src.Gender).ToString()))
+        .ForMember(dest => dest.Birthday, opt => opt.MapFrom(src => src.Birthday == null ? null : src.Birthday.Value.ToString("yyyy-mm-dd")));
         CreateMap<BranchDateDTO, BranchDate>();
         CreateMap<BranchPostDTO, Branch>()
             .ForMember(dest => dest.Location, opt => opt.MapFrom(src => src.Location == null ? null : MapLocationsAsync(src.Location).Result));
