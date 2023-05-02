@@ -344,7 +344,7 @@ public class UserController : BaseController
         var fileName = $"{Guid.NewGuid()}{Path.GetExtension(file.FileName)}";
 
         // 設定檔案路徑
-        var filePath = Path.Combine(_env.   , "avatars", fileName);
+        var filePath = Path.Combine(_env.WebRootPath, "avatars", fileName);
 
         // 確認路徑是否存在
         if (!Directory.Exists(Path.GetDirectoryName(filePath)))
