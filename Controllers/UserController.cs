@@ -152,7 +152,7 @@ public class UserController : BaseController
         // 更新生日
         if (patchDoc.Birthday != null)
         {
-            user.Birthday = DateTime.ParseExact(patchDoc.Birthday, "yyyy-MM-dd", CultureInfo.InvariantCulture);
+            user.Birthday = DateTime.ParseExact(patchDoc.Birthday, "yyyy-mm-dd", CultureInfo.InvariantCulture);
         }
 
         // 更新職業
