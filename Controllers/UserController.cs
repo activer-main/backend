@@ -431,10 +431,14 @@ public class UserController : BaseController
         var user = await _userService.GetByIdAsync(userId, user => user.Avatar);
 
         if (user == null)
+        {
             throw new UserNotFoundException();
+        }
 
         if (user.Avatar == null)
+        {
             throw new NotFoundException("我還沒做好默認頭貼");
+        }
 
         string filePath = user.Avatar.FilePath;
         string contentType = user.Avatar.FileType;
