@@ -213,7 +213,7 @@ public class ActivityController : BaseController
     /// <returns>熱門活動清單</returns>
     [AllowAnonymous]
     [HttpGet("trend")]
-    [ProducesResponseType(typeof(SegmentsResponseDTO<ActivityDTO>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(SegmentsResponseBaseDTO<ActivityDTO>), StatusCodes.Status200OK)]
     [Produces("application/json")]
     public async Task<ActionResult<SegmentsResponseBaseDTO<ActivityDTO>>> GetTrendActivities([FromQuery] SegmentsRequestBaseDTO segmentRequest)
     {
