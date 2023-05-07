@@ -18,5 +18,4 @@ public class BranchService : GenericService<Branch, int>
     //{
     //    _branchStatusRepository.Update(branchStatusToUpdate);
     //}
-
 }

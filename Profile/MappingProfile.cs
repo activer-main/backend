@@ -8,11 +8,17 @@ using Microsoft.Extensions.Configuration;
 using ActiverWebAPI.Enums;
 using ActiverWebAPI.Interfaces.UnitOfWork;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Razor.TagHelpers;
+using ActiverWebAPI.Interfaces.Repository;
+using ActiverWebAPI.Services.ActivityServices;
+using ActiverWebAPI.Services.TagServices;
 
 public class MappingProfile : Profile
 {
     private readonly IConfiguration _configuration;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly TagService _tagService;
+    private readonly IRepository<Location, int> _locationRepository;
 
     public MappingProfile()
     {
@@ -28,7 +34,25 @@ public class MappingProfile : Profile
             .ForMember(dest => dest.Connections, opt => opt.MapFrom(src => src.Connections == null ? null : src.Connections.Select(x => x.Content)))
             .ForMember(dest => dest.Holders, opt => opt.MapFrom(src => src.Holders == null ? null : src.Holders.Select(x => x.HolderName)))
             .ForMember(dest => dest.Objectives, opt => opt.MapFrom(src => src.Objectives == null ? null : src.Objectives.Select(x => x.ObjectiveName)))
-            .ForMember(dest => dest.Tags, opt => opt.MapFrom(src => src.UserVoteTagInActivity == null ? null : src.UserVoteTagInActivity.Select(x => new TagDTO { Text = x.Tag.Text, Type = x.Tag.Type, Trend = x.Tag.TagClickCount, UserVoted = false, ActivityAmount = x.Tag.Activities == null ? 0 : x.Tag.Activities.Count }).Distinct()))
+            .ForMember(dest => dest.Tags, opt => opt.MapFrom(src => src.Tags == null ? null : src.Tags.Select(x => new TagDTO {
+                Id = x.Id,
+                Text = x.Text,
+                Type = x.Type,
+                Trend = x.TagClickCount,
+                UserVoted = false,
+                ActivityAmount = x.Activities == null ? 0 : x.Activities.Count
+            })))
+            //.ForMember(dest => dest.Tags, opt => opt.MapFrom(src => src.UserVoteTagInActivity == null ? null : src.UserVoteTagInActivity.Select(x => 
+            //            new TagDTO { 
+            //                Text = x.Tag.Text, 
+            //                Type = x.Tag.Type, 
+            //                Trend = x.Tag.TagClickCount,
+            //                UserVoted = false, 
+            //                ActivityAmount = x.Tag.Activities == null ? 0 : x.Tag.Activities.Count 
+            //            }
+            //        ).Distinct()
+            //    )
+            //)
             .ForMember(dest => dest.Branches, opt => opt.MapFrom(src => src.Branches));
         CreateMap<Branch, BranchDTO>()
             .ForMember(dest => dest.Location, opt => opt.MapFrom(src => src.Location == null ? null : src.Location.Select(x => x.Content)));
@@ -55,11 +79,14 @@ public class MappingProfile : Profile
     public MappingProfile(
         IPasswordHasher passwordHasher,
         IConfiguration configuration,
-        IUnitOfWork unitOfWork
+        IUnitOfWork unitOfWork,
+        TagService tagService
         ) : this()
     {
         _configuration = configuration;
         _unitOfWork = unitOfWork;
+        _tagService = tagService;
+        _locationRepository = unitOfWork.Repository<Location, int>();
 
         CreateMap<UserSignUpDTO, User>()
             .ForMember(dest => dest.HashedPassword, opt => opt.MapFrom(src => passwordHasher.HashPassword(src.Password)));
@@ -144,24 +171,31 @@ public class MappingProfile : Profile
     private async Task<List<Tag>> MapTagsAsync(IEnumerable<TagPostDTO> tags)
     {
         var result = new List<Tag>();
-
-        foreach (var x in tags)
+        foreach (var tag in tags)
         {
-            var tag = await _unitOfWork.Repository<Tag, int>()
-                .GetAll(c => c.Text.Equals(x.Text) && c.Type.Equals(x.Type))
-                .FirstOrDefaultAsync();
-
-            if (tag == null)
-            {
-                var newTag = new Tag { Text = x.Text, Type = x.Type };
-                //_unitOfWork.Repository<Tag, int>().Add(newTag);
-                //_unitOfWork.SaveChanges();
-                result.Add(newTag);
-            }
-                
-            else
-                result.Add(tag);
+            //var existingTag = _tagService.GetLocal().FirstOrDefault(t => t.Text == tag.Text && t.Type == tag.Type);
+            //existingTag ??= _tagService.GetAll(t => t.Text == tag.Text && t.Type == tag.Type).FirstOrDefault();
+            //if (existingTag == null)
+            //{
+            //    var newTag = new Tag
+            //    {
+            //        Text = tag.Text,
+            //        Type = tag.Type
+            //    };
+            //    await _tagService.AddAsync(newTag);
+            //    existingTag = newTag;
+            //}
+            //result.Add(existingTag);
+            result.Add(new Tag { Text = tag.Text, Type = tag.Type });
         }
+
+        //for(int i = 1; i < result.Count; i++)
+        //{
+        //    var tag = result[i];
+        //    var tagFind = _tagService.GetLocal().FirstOrDefault(x => x.Type == tag.Type && x.Text == tag.Text);
+        //    if (tagFind != null)
+        //        result[i] = tagFind;
+        //}
 
         return result;
     }
@@ -170,25 +204,15 @@ public class MappingProfile : Profile
     {
         var result = new List<Location>();
 
-        foreach (var x in locations)
+        foreach (var location in locations)
         {
-            var location = await _unitOfWork.Repository<Location, int>()
-                .GetAll(c => c.Content.Equals(x))
-                .FirstOrDefaultAsync();
-
-            if (location == null)
+            result.Add(new Location
             {
-                var newLoc = new Location { Content = x };
-                //_unitOfWork.Repository<Location, int>().Add(newLoc);
-                result.Add(newLoc);
-            }
-            else
-                result.Add(location);
+                Content = location
+            });
         }
 
         return result;
     }
-
 }
-
 

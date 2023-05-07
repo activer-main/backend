@@ -3,6 +3,7 @@ using ActiverWebAPI.Interfaces.Service;
 using ActiverWebAPI.Interfaces.UnitOfWork;
 using ActiverWebAPI.Services.UnitOfWork;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 using System.Linq.Expressions;
 
 namespace ActiverWebAPI.Services;
@@ -21,37 +22,37 @@ public class GenericService<TEntity, TKey> : IGenericService<TEntity, TKey> wher
     }
 
     /// <inheritdoc />
-    public void Add(TEntity entity)
+    public virtual void Add(TEntity entity)
     {
         _unitOfWork.Repository<TEntity, TKey>().Add(entity);
     }
 
     /// <inheritdoc />
-    public async Task AddAsync(TEntity entity)
+    public virtual async Task AddAsync(TEntity entity)
     {
         await _unitOfWork.Repository<TEntity, TKey>().AddAsync(entity);
     }
 
     /// <inheritdoc />
-    public async Task AddRangeAsync(IEnumerable<TEntity> entities)
+    public virtual async Task AddRangeAsync(IEnumerable<TEntity> entities)
     {
         await _unitOfWork.Repository<TEntity, TKey>().AddRangeAsync(entities);
     }
 
     /// <inheritdoc />
-    public void Update(TEntity entity)
+    public virtual void Update(TEntity entity)
     {
         _unitOfWork.Repository<TEntity, TKey>().Update(entity);
     }
 
     /// <inheritdoc />
-    public void Delete(TEntity entity)
+    public virtual void Delete(TEntity entity)
     {
         _unitOfWork.Repository<TEntity, TKey>().Delete(entity);
     }
 
     /// <inheritdoc />
-    public void RemoveRange(IEnumerable<TEntity> entities)
+    public virtual void RemoveRange(IEnumerable<TEntity> entities)
     {
         _unitOfWork.Repository<TEntity, TKey>().RemoveRange(entities);
     }
@@ -133,5 +134,17 @@ public class GenericService<TEntity, TKey> : IGenericService<TEntity, TKey> wher
     where TProperty : class
     {
         await _unitOfWork.LoadCollectionAsync(entities, navigationProperty);
+    }
+
+    /// <inheritdoc />
+    public void SetEntityState(TEntity entity, EntityState state)
+    {
+        _unitOfWork.Repository<TEntity, TKey>().SetEntityState(entity, state);
+    }
+
+    /// <inheritdoc />
+    public IEnumerable<TEntity> GetLocal()
+    {
+        return _unitOfWork.Repository<TEntity, TKey>().GetLocal();
     }
 }

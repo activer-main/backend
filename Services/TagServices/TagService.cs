@@ -14,4 +14,10 @@ public class TagService : GenericService<Tag, int>
         _unitOfWork = unitOfWork;
         _tagRepository = _unitOfWork.Repository<Tag, int>();
     }
+
+    public Tag? GetTagByTextType(string text, string type)
+    {
+        var tag = _tagRepository.Query().FirstOrDefault(x => x.Text == text && x.Type == type);
+        return tag;
+    }
 }

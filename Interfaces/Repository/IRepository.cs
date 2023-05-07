@@ -1,4 +1,5 @@
-﻿using System.Linq.Expressions;
+﻿using Microsoft.EntityFrameworkCore;
+using System.Linq.Expressions;
 
 namespace ActiverWebAPI.Interfaces.Repository;
 
@@ -88,4 +89,17 @@ public interface IRepository<TEntity, Tkey> where TEntity : IEntity<Tkey>
     /// <param name="includes">導覽屬性的表達式</param>
     /// <returns>包含指定導覽屬性的所有實體集合</returns>
     Task<IEnumerable<TEntity>> CollectionAsync<TProperty>(Expression<Func<TEntity, IEnumerable<TProperty>>> navigationProperty);
+
+    /// <summary>
+    /// 設定實體狀態
+    /// </summary>
+    /// <param name="entity">實體</param>
+    /// <param name="state">狀態</param>
+    void SetEntityState(TEntity entity, EntityState state);
+
+    /// <summary>
+    /// 取得已在當前 DbContext 中追蹤的 TEntity 實體集合。
+    /// </summary>
+    /// <returns>已在當前 DbContext 中追蹤的 TEntity 實體集合。</returns>
+    IEnumerable<TEntity> GetLocal();
 }

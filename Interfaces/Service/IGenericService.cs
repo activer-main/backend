@@ -1,4 +1,5 @@
 ﻿using ActiverWebAPI.Interfaces.Repository;
+using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
 
 namespace ActiverWebAPI.Interfaces.Service;
@@ -102,4 +103,17 @@ public interface IGenericService<TEntity, TKey> where TEntity : class, IEntity<T
     /// <exception cref="ArgumentNullException">當 entities 或 navigationProperty 為 null 時拋出。</exception>
     /// <exception cref="ArgumentException">當 navigationProperty 表達式不是有效的導覽屬性表達式時拋出。</exception>
     Task LoadCollectionAsync<TProperty>(IEnumerable<TProperty> entities, Expression<Func<TProperty, IEnumerable<TEntity>>> navigationProperty) where TProperty : class;
+
+    /// <summary>
+    /// 設定實體狀態
+    /// </summary>
+    /// <param name="entity">實體</param>
+    /// <param name="state">狀態</param>
+    void SetEntityState(TEntity entity, EntityState state);
+
+    /// <summary>
+    /// 取得已在當前 DbContext 中追蹤的 TEntity 實體集合。
+    /// </summary>
+    /// <returns>已在當前 DbContext 中追蹤的 TEntity 實體集合。</returns>
+    IEnumerable<TEntity> GetLocal();
 }

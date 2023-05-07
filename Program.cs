@@ -50,6 +50,7 @@ builder.Services.AddSwaggerGen(c =>
     });
     // 將所有非可為空的 string 屬性設置為必填
     c.SchemaFilter<NonNullStringPropertiesSchemaFilter>();
+    c.EnableAnnotations();
 });
 
 builder.Services.AddDbContext<ActiverDbContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("DevConnection")));
@@ -58,6 +59,7 @@ builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped(typeof(IGenericService<,>), typeof(GenericService<,>));
 builder.Services.AddScoped<UserService>();
 builder.Services.AddScoped<BranchService>();
+builder.Services.AddScoped<LocationService>();
 builder.Services.AddScoped<AreaService>();
 builder.Services.AddScoped<TagService>();
 builder.Services.AddScoped<ProfessionService>();
@@ -84,7 +86,8 @@ builder.Services.AddAutoMapper(
     cfg => cfg.AddProfile(new MappingProfile(
         builder.Services.BuildServiceProvider().GetService<IPasswordHasher>(),
         builder.Services.BuildServiceProvider().GetService<IConfiguration>(),
-        builder.Services.BuildServiceProvider().GetService<IUnitOfWork>()
+        builder.Services.BuildServiceProvider().GetService<IUnitOfWork>(),
+        builder.Services.BuildServiceProvider().GetService<TagService>()
         )),
         AppDomain.CurrentDomain.GetAssemblies()
 );
