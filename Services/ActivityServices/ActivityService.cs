@@ -1,9 +1,8 @@
 ﻿using ActiverWebAPI.Interfaces.Repository;
 using ActiverWebAPI.Interfaces.UnitOfWork;
 using ActiverWebAPI.Models.DBEntity;
-using ActiverWebAPI.Models.DTO;
+using ActiverWebAPI.Services.TagServices;
 using Microsoft.EntityFrameworkCore;
-using System;
 using System.Linq.Expressions;
 
 namespace ActiverWebAPI.Services.ActivityServices;
@@ -29,6 +28,7 @@ public class ActivityService : GenericService<Activity, Guid>
             .Include(ac => ac.Connections)
             .Include(ac => ac.Holders)
             .Include(ac => ac.Objectives)
+            .Include(ac => ac.Tags)
             .Include(ac => ac.Branches)
                 .ThenInclude(b => b.Date)
             .Include(ac => ac.Branches)
@@ -48,6 +48,7 @@ public class ActivityService : GenericService<Activity, Guid>
             .Include(ac => ac.Connections)
             .Include(ac => ac.Holders)
             .Include(ac => ac.Objectives)
+            .Include(ac => ac.Tags)
             .Include(ac => ac.Branches)
                 .ThenInclude(b => b.Date)
             .Include(ac => ac.Branches)
@@ -67,6 +68,7 @@ public class ActivityService : GenericService<Activity, Guid>
             .Include(ac => ac.Connections)
             .Include(ac => ac.Holders)
             .Include(ac => ac.Objectives)
+            .Include(ac => ac.Tags)
             .Include(ac => ac.Branches)
                 .ThenInclude(b => b.Date)
             .Include(ac => ac.Branches)

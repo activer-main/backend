@@ -105,42 +105,6 @@ public class ActivityController : BaseController
     }
 
     /// <summary>
-    /// 新增活動
-    /// </summary>
-    /// <param name="activityPostDTOs">欲新增的活動資料</param>
-    /// <returns>新增成功的活動資料</returns>
-    /// <response code="200">成功回傳新增成功的活動資料</response>
-    /// <response code="401">使用者未登入，無法新增活動</response>
-    [Authorize(Roles = "Admin, InternalUser")]
-    [HttpPost]
-    [Produces("application/json")]
-    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(List<ActivityDTO>))]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public async Task<ActionResult<List<ActivityDTO>>> PostActivities(List<ActivityPostDTO> activityPostDTOs)
-    {
-        var activities = _mapper.Map<List<Models.DBEntity.Activity>>(activityPostDTOs);
-
-        foreach (var activity in activities)
-        {
-            var tags = activity.Tags;
-            activity.Tags = null; // 先將該 activity 的 Tags 屬性設為 null
-            activity.Branches.ForEach(b => b.Location = null); // 先將該 activity branch 的 location 屬性設為 null
-
-            await _activityService.AddAsync(activity); // 新增 activity 到資料庫
-
-            //activity.Tags = tags.Select(t => _tagService.GetById(t.Id)).Where(x => x != null).ToList(); // 再將原本的 Tags 屬性設回
-
-            //_activityService.Update(activity); // 更新 activity 到資料庫
-            //await _activityService.SaveChangesAsync();
-        }
-        await _activityService.SaveChangesAsync();
-
-
-        var activityDTOs = _mapper.Map<List<ActivityDTO>>(activities);
-        return activityDTOs;
-    }
-
-    /// <summary>
     /// 取得使用者管理的活動
     /// </summary>
     /// <param name="segmentRequest">分頁請求參數</param>

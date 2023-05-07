@@ -106,4 +106,16 @@ public class GenericRepository<TEntity, TKey> : IRepository<TEntity, TKey>
         var result = await query.Include(navigationProperty).ToListAsync();
         return result;
     }
+
+    /// <inheritdoc />
+    public void SetEntityState(TEntity entity, EntityState state)
+    {
+        Context.Entry(entity).State = state;
+    }
+
+    /// <inheritdoc />
+    public IEnumerable<TEntity> GetLocal()
+    {
+        return Context.Set<TEntity>().Local.AsEnumerable();
+    }
 }

@@ -50,6 +50,7 @@ builder.Services.AddSwaggerGen(c =>
     });
     // 將所有非可為空的 string 屬性設置為必填
     c.SchemaFilter<NonNullStringPropertiesSchemaFilter>();
+    c.EnableAnnotations();
 });
 
 builder.Services.AddDbContext<ActiverDbContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("DevConnection")));
