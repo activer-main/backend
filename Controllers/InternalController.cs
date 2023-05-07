@@ -7,7 +7,6 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
 using ActiverWebAPI.Models.DBEntity;
-using Azure;
 
 namespace ActiverWebAPI.Controllers;
 
