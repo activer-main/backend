@@ -17,7 +17,8 @@ public class MappingProfile : Profile
 {
     private readonly IConfiguration _configuration;
     private readonly IUnitOfWork _unitOfWork;
-    private readonly IRepository<Tag, int> _tagRepository;
+    private readonly TagService _tagService;
+    private readonly IRepository<Location, int> _locationRepository;
 
     public MappingProfile()
     {
@@ -78,12 +79,14 @@ public class MappingProfile : Profile
     public MappingProfile(
         IPasswordHasher passwordHasher,
         IConfiguration configuration,
-        IUnitOfWork unitOfWork
+        IUnitOfWork unitOfWork,
+        TagService tagService
         ) : this()
     {
         _configuration = configuration;
         _unitOfWork = unitOfWork;
-        _tagRepository = unitOfWork.Repository<Tag, int>();
+        _tagService = tagService;
+        _locationRepository = unitOfWork.Repository<Location, int>();
 
         CreateMap<UserSignUpDTO, User>()
             .ForMember(dest => dest.HashedPassword, opt => opt.MapFrom(src => passwordHasher.HashPassword(src.Password)));
@@ -97,8 +100,7 @@ public class MappingProfile : Profile
         .ForMember(dest => dest.Birthday, opt => opt.MapFrom(src => src.Birthday == null ? null : src.Birthday.Value.ToString("yyyy-mm-dd")));
         CreateMap<BranchDateDTO, BranchDate>();
         CreateMap<BranchPostDTO, Branch>()
-            //.ForMember(dest => dest.Location, opt => opt.MapFrom(src => src.Location == null ? null : MapLocationsAsync(src.Location).Result));
-            .ForMember(dest => dest.Location, opt => opt.Ignore());
+            .ForMember(dest => dest.Location, opt => opt.MapFrom(src => src.Location == null ? null : MapLocationsAsync(src.Location).Result));
         CreateMap<ActivityPostDTO, Activity>()
             .ForMember(dest => dest.Images, opt => opt.MapFrom(src => src.Images == null ? null : src.Images.Select(x => new Image { ImageURL = x })))
             .ForMember(dest => dest.Sources, opt => opt.MapFrom(src => src.Sources == null ? null : src.Sources.Select(x => new Source { SourceURL = x })))
@@ -171,19 +173,29 @@ public class MappingProfile : Profile
         var result = new List<Tag>();
         foreach (var tag in tags)
         {
-            var existingTag = _tagRepository.GetLocal().FirstOrDefault(t => t.Text == tag.Text && t.Type == tag.Type);
-            if(existingTag == null)
-            {
-                var newTag = new Tag
-                {
-                    Text = tag.Text,
-                    Type = tag.Type
-                };
-                await _tagRepository.AddAsync(newTag);
-                existingTag = newTag;
-            }
-            result.Add(existingTag);
+            //var existingTag = _tagService.GetLocal().FirstOrDefault(t => t.Text == tag.Text && t.Type == tag.Type);
+            //existingTag ??= _tagService.GetAll(t => t.Text == tag.Text && t.Type == tag.Type).FirstOrDefault();
+            //if (existingTag == null)
+            //{
+            //    var newTag = new Tag
+            //    {
+            //        Text = tag.Text,
+            //        Type = tag.Type
+            //    };
+            //    await _tagService.AddAsync(newTag);
+            //    existingTag = newTag;
+            //}
+            //result.Add(existingTag);
+            result.Add(new Tag { Text = tag.Text, Type = tag.Type });
         }
+
+        //for(int i = 1; i < result.Count; i++)
+        //{
+        //    var tag = result[i];
+        //    var tagFind = _tagService.GetLocal().FirstOrDefault(x => x.Type == tag.Type && x.Text == tag.Text);
+        //    if (tagFind != null)
+        //        result[i] = tagFind;
+        //}
 
         return result;
     }
@@ -192,24 +204,15 @@ public class MappingProfile : Profile
     {
         var result = new List<Location>();
 
-        foreach (var x in locations)
+        foreach (var location in locations)
         {
-            var location = await _unitOfWork.Repository<Location, int>()
-                .GetAll(c => c.Content.Equals(x))
-                .FirstOrDefaultAsync();
-
-            if (location == null)
+            result.Add(new Location
             {
-                var newLoc = new Location { Content = x };
-                //_unitOfWork.Repository<Location, int>().Add(newLoc);
-                result.Add(newLoc);
-            }
-            else
-                result.Add(location);
+                Content = location
+            });
         }
 
         return result;
     }
-
 }
 

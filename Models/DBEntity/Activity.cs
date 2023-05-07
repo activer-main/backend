@@ -105,6 +105,7 @@ public class Branch : BaseEntity, IEntity<int>
 
 public class BranchStatus : BaseEntity, IEntity<int>
 {
+    [Key]
     public int Id { get; set; }
 
     [JsonIgnore]
@@ -123,6 +124,7 @@ public class BranchStatus : BaseEntity, IEntity<int>
 
 public class ActivityStatus : BaseEntity, IEntity<int>
 {
+    [Key]
     public int Id { get; set; }
 
     [JsonIgnore]
@@ -155,6 +157,7 @@ public class BranchDate : BaseEntity, IEntity<int>
 [Index(nameof(Content), IsUnique = true)]
 public class Location : BaseEntity, IEntity<int>
 {
+    [Key]
     public int Id { get; set; }
     public string Content { get; set; }
 
