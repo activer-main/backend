@@ -2,14 +2,14 @@
 
 public class SegmentsRequestBaseDTO
 {
-    public string? OrderBy { get; set; }
+    public string? OrderBy { get; set; } = "Descending";
     public int Page { get; set; } = 1;
     public int CountPerPage { get; set; } = 10;
 }
 
 public class SegmentsRequestDTO : SegmentsRequestBaseDTO
 {
-    public string? SortBy { get; set; }
+    public string? SortBy { get; set; } = "CreatedAt";
 }
 
 public class SegmentsResponseBaseDTO<TEntity>

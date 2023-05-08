@@ -45,9 +45,9 @@ public class ActivityController : BaseController
     [AllowAnonymous]
     [HttpGet]
     [Produces("application/json")]
-    [ProducesResponseType(typeof(List<ActivityDTO>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(SegmentsResponseDTO<ActivityDTO>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public async Task<ActionResult<List<ActivityDTO>>?> GetAllActivities([FromQuery] SegmentsRequestDTO segmentRequest)
+    public async Task<ActionResult<SegmentsResponseDTO<ActivityDTO>>?> GetAllActivities([FromQuery] SegmentsRequestDTO segmentRequest)
     {
         var activities = await _activityService.GetAllActivitiesIncludeAll().ToListAsync();
 
@@ -65,7 +65,12 @@ public class ActivityController : BaseController
         var orderedActivityList = DataHelper.GetSortedAndPagedData(activities, segmentRequest.SortBy, segmentRequest.OrderBy, segmentRequest.Page, segmentRequest.CountPerPage);
 
         var result = _mapper.Map<List<ActivityDTO>>(orderedActivityList);
-        return result;
+        var response = _mapper.Map<SegmentsResponseDTO<ActivityDTO>>(segmentRequest);
+        response.SearchData = result;
+        response.TotalData = totalCount;
+        response.TotalPage = totalPage;
+
+        return response;
     }
 
     /// <summary>
@@ -124,8 +129,7 @@ public class ActivityController : BaseController
     {
         var userId = (Guid?)ViewData["UserId"] ?? Guid.Empty;
         var user = await _userService.GetByIdAsync(userId,
-            u => u.ActivityStatus,
-            u => u.ActivityStatus.Select(a => a.Activity)
+            u => u.ActivityStatus
         );
 
         // 確認 User 存在
@@ -134,10 +138,10 @@ public class ActivityController : BaseController
             throw new UserNotFoundException();
         }
 
-        var activityIDs = user.ActivityStatus.Select(a => a.ActivityId).ToList();
+        var activityIDs = user.ActivityStatus?.Select(a => a.ActivityId).ToList();
 
-        var activityStatus = user.ActivityStatus.Select(a => new KeyValuePair<Guid, string>(a.ActivityId, a.Status)).ToDictionary(kv => kv.Key, kv => kv.Value);
-        var activityStatusIds = activityStatus.Select(kv => kv.Key).ToList();
+        var activityStatus = user.ActivityStatus?.Select(a => new KeyValuePair<Guid, string>(a.ActivityId, a.Status)).ToDictionary(kv => kv.Key, kv => kv.Value);
+        var activityStatusIds = activityStatus?.Select(kv => kv.Key).ToList();
 
         var activityList = _activityService.GetAllActivitiesIncludeAll(x => activityIDs.Contains(x.Id));
         var totalCount = activityList.Count();
@@ -147,6 +151,9 @@ public class ActivityController : BaseController
         {
             throw new BadRequestException($"請求的頁數({segmentRequest.Page})大於總頁數({totalPage})");
         }
+
+        segmentRequest.SortBy ??= "CreatedAt";
+        segmentRequest.OrderBy ??= "Descending";
 
         var orderedActivityList = DataHelper.GetSortedAndPagedData(activityList, segmentRequest.SortBy, segmentRequest.OrderBy, segmentRequest.Page, segmentRequest.CountPerPage);
 
@@ -213,10 +220,10 @@ public class ActivityController : BaseController
     [HttpPost("activityStatus")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult> PostActivityStatus(Guid activityId, string status)
+    public async Task<ActionResult> PostActivityStatus(Guid id, string status)
     {
         var userId = (Guid?)ViewData["UserId"] ?? Guid.Empty;
-        var user = await _userService.GetByIdAsync(userId);
+        var user = await _userService.GetByIdAsync(userId, u => u.ActivityStatus);
 
         // 確認 User 存在
         if (user == null)
@@ -224,7 +231,7 @@ public class ActivityController : BaseController
             throw new UserNotFoundException();
         }
 
-        var activity = await _activityService.GetByIdAsync(activityId);
+        var activity = await _activityService.GetByIdAsync(id);
 
         // 確認 Branch 存在
         if (activity == null)
@@ -232,7 +239,9 @@ public class ActivityController : BaseController
             throw new NotFoundException("Branch not found.");
         }
 
-        var userActivityStatusFind = user.ActivityStatus?.Find(x => x.ActivityId == activity.Id);
+        user.ActivityStatus ??= new List<ActivityStatus>() { };
+
+        var userActivityStatusFind = user.ActivityStatus.Find(x => x.ActivityId == activity.Id);
 
         if (userActivityStatusFind == null)
         {
