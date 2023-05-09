@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.CodeAnalysis;
 using Microsoft.EntityFrameworkCore;
 using System.Diagnostics;
+using System.Linq;
 
 namespace ActiverWebAPI.Controllers;
 
@@ -64,9 +65,31 @@ public class ActivityController : BaseController
 
         var orderedActivityList = DataHelper.GetSortedAndPagedData(activities, segmentRequest.SortBy, segmentRequest.OrderBy, segmentRequest.Page, segmentRequest.CountPerPage);
 
-        var result = _mapper.Map<List<ActivityDTO>>(orderedActivityList);
+        var activityDTOList = _mapper.Map<List<ActivityDTO>>(orderedActivityList);
+
+        // 把 activity 中加入 user 的 status
+        if (User.Identity.IsAuthenticated)
+        {
+            var userId = (Guid?)ViewData["UserId"] ?? Guid.Empty;
+            var user = await _userService.GetByIdAsync(userId, u => u.ActivityStatus);
+
+            if (user != null)
+            {
+                var activityStatus = user.ActivityStatus?.Select(a => new KeyValuePair<Guid, string>(a.ActivityId, a.Status)).ToDictionary(kv => kv.Key, kv => kv.Value);
+                var activityStatusIds = activityStatus.Select(kv => kv.Key);
+                // 根據使用者更改 Status
+                activityDTOList.ForEach(x =>
+                {
+                    if (activityStatusIds.Contains(x.Id))
+                    {
+                        x.Status = activityStatus.GetValueOrDefault(x.Id, null);
+                    }
+                });
+            }
+        }
+
         var response = _mapper.Map<SegmentsResponseDTO<ActivityDTO>>(segmentRequest);
-        response.SearchData = result;
+        response.SearchData = activityDTOList;
         response.TotalData = totalCount;
         response.TotalPage = totalPage;
 
@@ -89,6 +112,11 @@ public class ActivityController : BaseController
         if (activity == null)
             throw new NotFoundException("活動不存在");
 
+        // 新增活動熱度
+        activity.ActivityClickedCount += 1;
+        _activityService.Update(activity);
+        await _activityService.SaveChangesAsync();
+
         // 封裝活動
         var activityDTO = _mapper.Map<ActivityDTO>(activity);
 
@@ -104,7 +132,16 @@ public class ActivityController : BaseController
                     x.UserVoted = true;
                 }
             });
+
+            var user = await _userService.GetByIdAsync(userId, u => u.ActivityStatus);
+
+            if (user != null)
+            {
+                var activityStatus = user.ActivityStatus?.Select(a => new KeyValuePair<Guid, string>(a.ActivityId, a.Status)).ToDictionary(kv => kv.Key, kv => kv.Value);
+                activityDTO.Status = activityStatus.GetValueOrDefault(activityDTO.Id, null);
+            }
         }
+
 
         return activityDTO;
     }
@@ -138,12 +175,10 @@ public class ActivityController : BaseController
             throw new UserNotFoundException();
         }
 
-        var activityIDs = user.ActivityStatus?.Select(a => a.ActivityId).ToList();
-
         var activityStatus = user.ActivityStatus?.Select(a => new KeyValuePair<Guid, string>(a.ActivityId, a.Status)).ToDictionary(kv => kv.Key, kv => kv.Value);
         var activityStatusIds = activityStatus?.Select(kv => kv.Key).ToList();
 
-        var activityList = _activityService.GetAllActivitiesIncludeAll(x => activityIDs.Contains(x.Id));
+        var activityList = _activityService.GetAllActivitiesIncludeAll(x => activityStatusIds.Contains(x.Id));
         var totalCount = activityList.Count();
         var totalPage = (totalCount / segmentRequest.CountPerPage) + 1;
 
@@ -202,6 +237,27 @@ public class ActivityController : BaseController
         var orderedActivityList = DataHelper.GetSortedAndPagedData(activityList, "ActivityClickedCount", segmentRequest.OrderBy, segmentRequest.Page, segmentRequest.CountPerPage);
         var activityDTOList = _mapper.Map<List<ActivityDTO>>(orderedActivityList);
         var SegmentResponse = _mapper.Map<SegmentsResponseBaseDTO<ActivityDTO>>(segmentRequest);
+
+        // 把 activity 中加入 user 的 status
+        if (User.Identity.IsAuthenticated)
+        {
+            var userId = (Guid?)ViewData["UserId"] ?? Guid.Empty;
+            var user = await _userService.GetByIdAsync(userId, u => u.ActivityStatus);
+
+            if (user != null)
+            {
+                var activityStatus = user.ActivityStatus?.Select(a => new KeyValuePair<Guid, string>(a.ActivityId, a.Status)).ToDictionary(kv => kv.Key, kv => kv.Value);
+                var activityStatusIds = activityStatus.Select(kv => kv.Key);
+                // 根據使用者更改 Status
+                activityDTOList.ForEach(x =>
+                {
+                    if (activityStatusIds.Contains(x.Id))
+                    {
+                        x.Status = activityStatus.GetValueOrDefault(x.Id, null);
+                    }
+                });
+            }
+        }
 
         SegmentResponse.SearchData = activityDTOList;
         SegmentResponse.TotalPage = totalPage;
