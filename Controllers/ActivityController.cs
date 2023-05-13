@@ -173,12 +173,19 @@ public class ActivityController : BaseController
             u => u.ActivityStatus
         );
 
-        var statusList = new List<string> { "願望", "已註冊", "已完成" };
+        var allowSortByList = new List<string> { "Trend", "CreatedAt", "AddTime" };
+
+        if (!segmentRequest.SortBy.IsNullOrEmpty() && !allowSortByList.Contains(segmentRequest.SortBy))
+        {
+            throw new BadRequestException($"排序: '{segmentRequest.SortBy}' 不在可接受的排序列表: '{string.Join(", ", allowSortByList)}'");
+        }
+
+        var allowStatusList = new List<string> { "願望", "已註冊", "已完成" };
         segmentRequest.Status?.ForEach(s =>
         {
-            if (!statusList.Contains(s))
+            if (!allowStatusList.Contains(s))
             {
-                throw new BadRequestException($"活動狀態: '{s}' 不在可接受的狀態列表: '{string.Join(", ", statusList)}'");
+                throw new BadRequestException($"活動狀態: '{s}' 不在可接受的狀態列表: '{string.Join(", ", allowStatusList)}'");
             }
         });
 
@@ -225,8 +232,22 @@ public class ActivityController : BaseController
         segmentRequest.SortBy ??= "CreatedAt";
         segmentRequest.OrderBy ??= "Descending";
 
-        var properties = new List<string>() { segmentRequest.SortBy };
+        var properties = new List<string>() {  };
+
         var Expressions = new List<Expression<Func<Activity, object>>>() {  };
+
+        // 加入 sortBy List
+        if(segmentRequest.SortBy == "Trend")
+        {
+            Expressions.Add(a => a.ActivityClickedCount);
+        }else if(segmentRequest.SortBy == "AddTime")
+        {
+            Expressions.Add(a => a.Status.FirstOrDefault(s => s.UserId == user.Id && s.ActivityId == a.Id).CreatedAt);
+        }else
+        {
+            properties.Add(segmentRequest.SortBy);
+        }
+
 
         var orderedActivityList = DataHelper.GetSortedAndPagedData(activityList, properties, Expressions, segmentRequest.OrderBy, segmentRequest.Page, segmentRequest.CountPerPage);
 
@@ -363,6 +384,15 @@ public class ActivityController : BaseController
         }
         await _activityService.SaveChangesAsync();
 
+        return Ok();
+    }
+
+    [Authorize]
+    [HttpDelete("activityStatus")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult> DeleteActivitiesStatus(List<Guid> id)
+    {
         return Ok();
     }
 }
