@@ -37,4 +37,6 @@ public class ActivityPostDTO
 public class ManageActivitySegmentDTO : SegmentsRequestDTO
 {
     public new string? SortBy { get; set; } = "CreatedAt";
+    public List<string>? Tags { get; set; } = new() { };
+    public List<string>? Status { get; set; } = new() { };
 }

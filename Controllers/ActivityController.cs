@@ -10,8 +10,9 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.CodeAnalysis;
 using Microsoft.EntityFrameworkCore;
-using System.Diagnostics;
+using Microsoft.IdentityModel.Tokens;
 using System.Linq;
+using System.Linq.Expressions;
 
 namespace ActiverWebAPI.Controllers;
 
@@ -63,7 +64,10 @@ public class ActivityController : BaseController
         segmentRequest.SortBy ??= "CreateAt";
         segmentRequest.OrderBy ??= "descending";
 
-        var orderedActivityList = DataHelper.GetSortedAndPagedData(activities, segmentRequest.SortBy, segmentRequest.OrderBy, segmentRequest.Page, segmentRequest.CountPerPage);
+        var properties = new List<string>() { segmentRequest.SortBy };
+        var Expressions = new List<Expression<Func<Activity, object>>>() { };
+
+        var orderedActivityList = DataHelper.GetSortedAndPagedData(activities, properties, Expressions, segmentRequest.OrderBy, segmentRequest.Page, segmentRequest.CountPerPage);
 
         var activityDTOList = _mapper.Map<List<ActivityDTO>>(orderedActivityList);
 
@@ -169,20 +173,51 @@ public class ActivityController : BaseController
             u => u.ActivityStatus
         );
 
+        var statusList = new List<string> { "願望", "已註冊", "已完成" };
+        segmentRequest.Status?.ForEach(s =>
+        {
+            if (!statusList.Contains(s))
+            {
+                throw new BadRequestException($"活動狀態: '{s}' 不在可接受的狀態列表: '{string.Join(", ", statusList)}'");
+            }
+        });
+
         // 確認 User 存在
         if (user == null)
         {
             throw new UserNotFoundException();
         }
 
+        // 找出每個 activity 的 status
         var activityStatus = user.ActivityStatus?.Select(a => new KeyValuePair<Guid, string>(a.ActivityId, a.Status)).ToDictionary(kv => kv.Key, kv => kv.Value);
         var activityStatusIds = activityStatus?.Select(kv => kv.Key).ToList();
 
-        var activityList = _activityService.GetAllActivitiesIncludeAll(x => activityStatusIds.Contains(x.Id));
+        // 避免 null exception
+        activityStatusIds ??= new List<Guid>() { };
+
+        // 找出所有活動 並 filter status 
+        var activityList = activityStatusIds.Select(_activityService.GetActivityIncludeAllById)
+            .Where(x => x != null)
+            .Where(a =>
+                segmentRequest.Status.IsNullOrEmpty() || segmentRequest.Status.Contains(activityStatus.GetValueOrDefault(a.Id, null))
+            ).ToList();
+
+        var tagIds = segmentRequest.Tags?.Select(_tagService.GetTagByText).Where(x => x != null).Select(t => t.Id).ToList();
+
+        // 如果有 tag filter list
+        if (!tagIds.IsNullOrEmpty())
+        {
+            // Tag Filter
+            activityList = activityList
+                .OrderBy(a => !a.Tags.IsNullOrEmpty() ? a.Tags.Count(t => tagIds.Contains(t.Id)) : 0)
+                .Where(a => !a.Tags.IsNullOrEmpty() && a.Tags.Any(t => tagIds.Contains(t.Id)))
+                .ToList();
+        }
+
         var totalCount = activityList.Count();
         var totalPage = (totalCount / segmentRequest.CountPerPage) + 1;
 
-        if(segmentRequest.Page > totalPage)
+        if (segmentRequest.Page > totalPage)
         {
             throw new BadRequestException($"請求的頁數({segmentRequest.Page})大於總頁數({totalPage})");
         }
@@ -190,7 +225,10 @@ public class ActivityController : BaseController
         segmentRequest.SortBy ??= "CreatedAt";
         segmentRequest.OrderBy ??= "Descending";
 
-        var orderedActivityList = DataHelper.GetSortedAndPagedData(activityList, segmentRequest.SortBy, segmentRequest.OrderBy, segmentRequest.Page, segmentRequest.CountPerPage);
+        var properties = new List<string>() { segmentRequest.SortBy };
+        var Expressions = new List<Expression<Func<Activity, object>>>() {  };
+
+        var orderedActivityList = DataHelper.GetSortedAndPagedData(activityList, properties, Expressions, segmentRequest.OrderBy, segmentRequest.Page, segmentRequest.CountPerPage);
 
         var activityDTOList = _mapper.Map<List<ActivityDTO>>(orderedActivityList);
 
@@ -234,7 +272,11 @@ public class ActivityController : BaseController
 
         segmentRequest.OrderBy ??= "descending";
 
-        var orderedActivityList = DataHelper.GetSortedAndPagedData(activityList, "ActivityClickedCount", segmentRequest.OrderBy, segmentRequest.Page, segmentRequest.CountPerPage);
+        var properties = new List<string>() {  };
+        var Expressions = new List<Expression<Func<Activity, object>>>() { a => a.ActivityClickedCount };
+
+        var orderedActivityList = DataHelper.GetSortedAndPagedData(activityList, properties, Expressions, segmentRequest.OrderBy, segmentRequest.Page, segmentRequest.CountPerPage);
+
         var activityDTOList = _mapper.Map<List<ActivityDTO>>(orderedActivityList);
         var SegmentResponse = _mapper.Map<SegmentsResponseBaseDTO<ActivityDTO>>(segmentRequest);
 
@@ -280,6 +322,12 @@ public class ActivityController : BaseController
     {
         var userId = (Guid?)ViewData["UserId"] ?? Guid.Empty;
         var user = await _userService.GetByIdAsync(userId, u => u.ActivityStatus);
+
+        var statusList = new List<string> { "願望", "已註冊", "已完成" };
+        if (!statusList.Contains(status))
+        {
+            throw new BadRequestException($"活動狀態: {status} 不在可接受的狀態列表: \"{string.Join(", ", statusList)}\"");
+        }
 
         // 確認 User 存在
         if (user == null)

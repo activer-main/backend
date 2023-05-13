@@ -80,6 +80,27 @@ public class ActivityService : GenericService<Activity, Guid>
         return activity;
     }
 
+    public Activity? GetActivityIncludeAllById(Guid Id)
+    {
+        var activity = _activityRepository.Query()
+            .Where(x => x.Id.Equals(Id))
+            .Include(ac => ac.Images)
+            .Include(ac => ac.Sources)
+            .Include(ac => ac.Connections)
+            .Include(ac => ac.Holders)
+            .Include(ac => ac.Objectives)
+            .Include(ac => ac.Tags)
+            .Include(ac => ac.Branches)
+                .ThenInclude(b => b.Date)
+            .Include(ac => ac.Branches)
+                .ThenInclude(b => b.Location)
+            .Include(ac => ac.UserVoteTagInActivity)
+                .ThenInclude(u => u.Tag)
+                    .ThenInclude(t => t.Activities)
+            .FirstOrDefault();
+        return activity;
+    }
+
     public void UpdateActivityStatus(ActivityStatus activityStatusToUpdate)
     {
         _activityStatusRepository.Update(activityStatusToUpdate);

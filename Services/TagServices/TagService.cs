@@ -1,6 +1,7 @@
 ﻿using ActiverWebAPI.Interfaces.Repository;
 using ActiverWebAPI.Interfaces.UnitOfWork;
 using ActiverWebAPI.Models.DBEntity;
+using Microsoft.EntityFrameworkCore;
 
 namespace ActiverWebAPI.Services.TagServices;
 
@@ -20,4 +21,17 @@ public class TagService : GenericService<Tag, int>
         var tag = _tagRepository.Query().FirstOrDefault(x => x.Text == text && x.Type == type);
         return tag;
     }
+
+    public async Task<Tag?> GetTagByTextAsync(string text)
+    {
+        var tag = await _tagRepository.Query().FirstOrDefaultAsync(x => x.Text == text);
+        return tag;
+    }
+
+    public Tag? GetTagByText(string text)
+    {
+        var tag = _tagRepository.Query().FirstOrDefault(x => x.Text == text);
+        return tag;
+    }
+
 }
