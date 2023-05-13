@@ -49,9 +49,40 @@ public class ActivityController : BaseController
     [Produces("application/json")]
     [ProducesResponseType(typeof(SegmentsResponseDTO<ActivityDTO>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public async Task<ActionResult<SegmentsResponseDTO<ActivityDTO>>?> GetAllActivities([FromQuery] SegmentsRequestDTO segmentRequest)
+    public async Task<ActionResult<SegmentsResponseDTO<ActivityDTO>>?> GetAllActivities([FromQuery] ActivitySegmentDTO segmentRequest)
     {
+        // 如果需要存取 status Filter 直接導向 managedActivity
+        if (!segmentRequest.Status.IsNullOrEmpty())
+        {
+            if (!User.Identity.IsAuthenticated)
+            {
+                throw new UnauthorizedException("使用者未登入");
+            }
+            return await GetManageActivities(segmentRequest);
+        }
+
+        // 獲取所有活動
         var activities = await _activityService.GetAllActivitiesIncludeAll().ToListAsync();
+
+        var allowSortByList = new List<string> { "Trend", "CreatedAt", "AddTime" };
+
+        if (!segmentRequest.SortBy.IsNullOrEmpty() && !allowSortByList.Contains(segmentRequest.SortBy))
+        {
+            throw new BadRequestException($"排序: '{segmentRequest.SortBy}' 不在可接受的排序列表: '{string.Join(", ", allowSortByList)}'");
+        }
+
+        // 獲取所有 tag Id
+        var tagIds = segmentRequest.Tags?.Select(_tagService.GetTagByText).Where(x => x != null).Select(t => t.Id).ToList();
+
+        // 如果有 tag filter list
+        if (!tagIds.IsNullOrEmpty())
+        {
+            // Tag Filter
+            activities = activities
+                .OrderBy(a => !a.Tags.IsNullOrEmpty() ? a.Tags.Count(t => tagIds.Contains(t.Id)) : 0)
+                .Where(a => !a.Tags.IsNullOrEmpty() && a.Tags.Any(t => tagIds.Contains(t.Id)))
+                .ToList();
+        }
 
         var totalCount = activities.Count;
         var totalPage = (totalCount / segmentRequest.CountPerPage) + 1;
@@ -64,8 +95,23 @@ public class ActivityController : BaseController
         segmentRequest.SortBy ??= "CreateAt";
         segmentRequest.OrderBy ??= "descending";
 
-        var properties = new List<string>() { segmentRequest.SortBy };
+        var properties = new List<string>() { };
+
         var Expressions = new List<Expression<Func<Activity, object>>>() { };
+
+        // 加入 sortBy List
+        if (segmentRequest.SortBy == "Trend")
+        {
+            Expressions.Add(a => a.ActivityClickedCount);
+        }
+        else if (segmentRequest.SortBy == "AddTime")
+        {
+            Expressions.Add(a => a.CreatedAt);
+        }
+        else
+        {
+            properties.Add(segmentRequest.SortBy);
+        }
 
         var orderedActivityList = DataHelper.GetSortedAndPagedData(activities, properties, Expressions, segmentRequest.OrderBy, segmentRequest.Page, segmentRequest.CountPerPage);
 
@@ -166,7 +212,7 @@ public class ActivityController : BaseController
     [ProducesResponseType(400)]
     [ProducesResponseType(401)]
     [ProducesResponseType(404)]
-    public async Task<ActionResult<SegmentsResponseDTO<ActivityDTO>>> GetManageActivities([FromQuery] ManageActivitySegmentDTO segmentRequest)
+    public async Task<ActionResult<SegmentsResponseDTO<ActivityDTO>>> GetManageActivities([FromQuery] ActivitySegmentDTO segmentRequest)
     {
         var userId = (Guid?)ViewData["UserId"] ?? Guid.Empty;
         var user = await _userService.GetByIdAsync(userId,
