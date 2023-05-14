@@ -68,7 +68,7 @@ public class MappingProfile : Profile
             .ForMember(dest => dest.TotalData, opt => opt.Ignore())
             .ForMember(dest => dest.SearchData, opt => opt.Ignore());
 
-        CreateMap<ActivitySegmentDTO, SegmentsResponseDTO<ActivityDTO>>()
+        CreateMap<ActivitySegmentDTO, ActivitySegmentResponseDTO>()
             .ForMember(dest => dest.TotalPage, opt => opt.Ignore())
             .ForMember(dest => dest.TotalData, opt => opt.Ignore())
             .ForMember(dest => dest.SearchData, opt => opt.Ignore());

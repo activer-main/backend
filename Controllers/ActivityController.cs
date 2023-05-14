@@ -49,7 +49,7 @@ public class ActivityController : BaseController
     [Produces("application/json")]
     [ProducesResponseType(typeof(SegmentsResponseDTO<ActivityDTO>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public async Task<ActionResult<SegmentsResponseDTO<ActivityDTO>>?> GetAllActivities([FromQuery] ActivitySegmentDTO segmentRequest)
+    public async Task<ActionResult<ActivitySegmentResponseDTO>?> GetAllActivities([FromQuery] ActivitySegmentDTO segmentRequest)
     {
         // 如果需要存取 status Filter 直接導向 managedActivity
         if (!segmentRequest.Status.IsNullOrEmpty())
@@ -62,83 +62,88 @@ public class ActivityController : BaseController
         }
 
         // 獲取所有活動
-        var activities = await _activityService.GetAllActivitiesIncludeAll().ToListAsync();
+        var activities = _activityService.GetAllActivitiesIncludeAll();
 
-        var allowSortByList = new List<string> { "Trend", "CreatedAt", "AddTime" };
-
-        if (!segmentRequest.SortBy.IsNullOrEmpty() && !allowSortByList.Contains(segmentRequest.SortBy))
+        // 確認 SortBy 為可以接受的值
+        var allowSortBySet = new HashSet<string> { "Trend", "CreatedAt", "AddTime" };
+        if (!allowSortBySet.Contains(segmentRequest.SortBy))
         {
-            throw new BadRequestException($"排序: '{segmentRequest.SortBy}' 不在可接受的排序列表: '{string.Join(", ", allowSortByList)}'");
+            throw new BadRequestException($"排序: '{segmentRequest.SortBy}' 不在可接受的排序列表: '{string.Join(", ", allowSortBySet)}'");
         }
 
-        // 獲取所有 tag Id
-        var tagIds = segmentRequest.Tags?.Select(_tagService.GetTagByText).Where(x => x != null).Select(t => t.Id).ToList();
-
-        // 如果有 tag filter list
-        if (!tagIds.IsNullOrEmpty())
+        // Tag filter
+        if (!segmentRequest.Tags.IsNullOrEmpty())
         {
-            // Tag Filter
-            activities = activities
-                .OrderBy(a => !a.Tags.IsNullOrEmpty() ? a.Tags.Count(t => tagIds.Contains(t.Id)) : 0)
-                .Where(a => !a.Tags.IsNullOrEmpty() && a.Tags.Any(t => tagIds.Contains(t.Id)))
+            // 獲取所有 tag Id
+            var tagIds = segmentRequest.Tags?
+                .Select(_tagService.GetTagByText)
+                .Where(x => x != null)
+                .Select(t => t.Id)
                 .ToList();
+
+            // Tag Filter (至少要有一個 tag 符合)
+            activities = activities
+                .Where(a => !a.Tags.IsNullOrEmpty() && (tagIds == null || a.Tags.Any(t => tagIds.Contains(t.Id))))
+                .OrderByDescending(a => a.Tags.Count(t => tagIds.Contains(t.Id)));
         }
 
-        var totalCount = activities.Count;
-        var totalPage = (totalCount / segmentRequest.CountPerPage) + 1;
+        var totalCount = activities.Count();
+        var totalPage = totalCount / segmentRequest.CountPerPage + (totalCount % segmentRequest.CountPerPage > 0 ? 1 : 0);
 
+        // 檢查 請求頁數 < 總頁數
         if (segmentRequest.Page > totalPage)
         {
             throw new BadRequestException($"請求的頁數({segmentRequest.Page})大於總頁數({totalPage})");
         }
 
+        // 給 SortBy 與 OrderBy 預設值
         segmentRequest.SortBy ??= "CreateAt";
         segmentRequest.OrderBy ??= "descending";
 
-        var properties = new List<string>() { };
+        // 初始化 SortBy 列表
+        var properties = new List<Expression<Func<Activity, object>>>() { };
+        var sortBy = segmentRequest.SortBy;
 
-        var Expressions = new List<Expression<Func<Activity, object>>>() { };
-
-        // 加入 sortBy List
-        if (segmentRequest.SortBy == "Trend")
+        // 加入 sortBy 列表
+        switch (sortBy)
         {
-            Expressions.Add(a => a.ActivityClickedCount);
-        }
-        else if (segmentRequest.SortBy == "AddTime")
-        {
-            Expressions.Add(a => a.CreatedAt);
-        }
-        else
-        {
-            properties.Add(segmentRequest.SortBy);
+            case "Trend":
+                properties.Add(a => a.ActivityClickedCount);
+                break;
+            case "AddTime":
+                properties.Add(a => a.CreatedAt);
+                break;
+            default:
+                var parameter = Expression.Parameter(typeof(Activity), "a");
+                var property = Expression.Property(parameter, sortBy);
+                var cast = Expression.Convert(property, typeof(object));
+                var lambda = Expression.Lambda<Func<Activity, object>>(cast, parameter);
+                properties.Add(lambda);
+                break;
         }
 
-        var orderedActivityList = DataHelper.GetSortedAndPagedData(activities, properties, Expressions, segmentRequest.OrderBy, segmentRequest.Page, segmentRequest.CountPerPage);
+        // 分頁 & 排序
+        var orderedActivityList = DataHelper.GetSortedAndPagedData(activities, properties, segmentRequest.OrderBy, segmentRequest.Page, segmentRequest.CountPerPage);
 
-        var activityDTOList = _mapper.Map<List<ActivityDTO>>(orderedActivityList);
+        // 轉換型態 Activity => ActivityDTO 
+        var activityDTOList = _mapper.Map<IEnumerable<ActivityDTO>>(orderedActivityList);
 
-        // 把 activity 中加入 user 的 status
+        // 在 ActivityDTO 中加入使用者的活動狀態
         if (User.Identity.IsAuthenticated)
         {
             var userId = (Guid?)ViewData["UserId"] ?? Guid.Empty;
-            var user = await _userService.GetByIdAsync(userId, u => u.ActivityStatus);
-
-            if (user != null)
+            var activityStatus = await _userService.GetUserActivityStatusAsync(userId);
+            if (activityStatus != null)
             {
-                var activityStatus = user.ActivityStatus?.Select(a => new KeyValuePair<Guid, string>(a.ActivityId, a.Status)).ToDictionary(kv => kv.Key, kv => kv.Value);
-                var activityStatusIds = activityStatus.Select(kv => kv.Key);
                 // 根據使用者更改 Status
-                activityDTOList.ForEach(x =>
+                foreach (var activity in activityDTOList.Where(x => activityStatus.ContainsKey(x.Id)))
                 {
-                    if (activityStatusIds.Contains(x.Id))
-                    {
-                        x.Status = activityStatus.GetValueOrDefault(x.Id, null);
-                    }
-                });
+                    activity.Status = activityStatus[activity.Id];
+                }
             }
         }
 
-        var response = _mapper.Map<SegmentsResponseDTO<ActivityDTO>>(segmentRequest);
+        var response = _mapper.Map<ActivitySegmentResponseDTO>(segmentRequest);
         response.SearchData = activityDTOList;
         response.TotalData = totalCount;
         response.TotalPage = totalPage;
@@ -212,26 +217,27 @@ public class ActivityController : BaseController
     [ProducesResponseType(400)]
     [ProducesResponseType(401)]
     [ProducesResponseType(404)]
-    public async Task<ActionResult<SegmentsResponseDTO<ActivityDTO>>> GetManageActivities([FromQuery] ActivitySegmentDTO segmentRequest)
+    public async Task<ActionResult<ActivitySegmentResponseDTO>> GetManageActivities([FromQuery] ActivitySegmentDTO segmentRequest)
     {
         var userId = (Guid?)ViewData["UserId"] ?? Guid.Empty;
         var user = await _userService.GetByIdAsync(userId,
             u => u.ActivityStatus
         );
 
-        var allowSortByList = new List<string> { "Trend", "CreatedAt", "AddTime" };
-
-        if (!segmentRequest.SortBy.IsNullOrEmpty() && !allowSortByList.Contains(segmentRequest.SortBy))
+        // 確認 SortBy 為可以接受的值
+        var allowSortBySet = new HashSet<string> { "Trend", "CreatedAt", "AddTime" };
+        if (!segmentRequest.SortBy.IsNullOrEmpty() && !allowSortBySet.Contains(segmentRequest.SortBy))
         {
-            throw new BadRequestException($"排序: '{segmentRequest.SortBy}' 不在可接受的排序列表: '{string.Join(", ", allowSortByList)}'");
+            throw new BadRequestException($"排序: '{segmentRequest.SortBy}' 不在可接受的排序列表: '{string.Join(", ", allowSortBySet)}'");
         }
 
-        var allowStatusList = new List<string> { "願望", "已註冊", "已完成" };
+        // 確認 Status 為可以接受的值
+        var allowStatusSet = new HashSet<string> { "願望", "已註冊", "已完成" };
         segmentRequest.Status?.ForEach(s =>
         {
-            if (!allowStatusList.Contains(s))
+            if (!allowStatusSet.Contains(s))
             {
-                throw new BadRequestException($"活動狀態: '{s}' 不在可接受的狀態列表: '{string.Join(", ", allowStatusList)}'");
+                throw new BadRequestException($"活動狀態: '{s}' 不在可接受的狀態列表: '{string.Join(", ", allowStatusSet)}'");
             }
         });
 
@@ -242,18 +248,15 @@ public class ActivityController : BaseController
         }
 
         // 找出每個 activity 的 status
-        var activityStatus = user.ActivityStatus?.Select(a => new KeyValuePair<Guid, string>(a.ActivityId, a.Status)).ToDictionary(kv => kv.Key, kv => kv.Value);
-        var activityStatusIds = activityStatus?.Select(kv => kv.Key).ToList();
-
-        // 避免 null exception
-        activityStatusIds ??= new List<Guid>() { };
+        var activityStatus = await _userService.GetUserActivityStatusAsync(user.Id);
 
         // 找出所有活動 並 filter status 
-        var activityList = activityStatusIds.Select(_activityService.GetActivityIncludeAllById)
+        var activityList = activityStatus.Keys.Select(_activityService.GetActivityIncludeAllById)
+            .AsQueryable()
             .Where(x => x != null)
             .Where(a =>
-                segmentRequest.Status.IsNullOrEmpty() || segmentRequest.Status.Contains(activityStatus.GetValueOrDefault(a.Id, null))
-            ).ToList();
+                segmentRequest.Status.IsNullOrEmpty() || segmentRequest.Status.Contains(activityStatus[a.Id])
+            );
 
         var tagIds = segmentRequest.Tags?.Select(_tagService.GetTagByText).Where(x => x != null).Select(t => t.Id).ToList();
 
@@ -263,8 +266,7 @@ public class ActivityController : BaseController
             // Tag Filter
             activityList = activityList
                 .OrderBy(a => !a.Tags.IsNullOrEmpty() ? a.Tags.Count(t => tagIds.Contains(t.Id)) : 0)
-                .Where(a => !a.Tags.IsNullOrEmpty() && a.Tags.Any(t => tagIds.Contains(t.Id)))
-                .ToList();
+                .Where(a => !a.Tags.IsNullOrEmpty() && a.Tags.Any(t => tagIds.Contains(t.Id)));
         }
 
         var totalCount = activityList.Count();
@@ -275,40 +277,47 @@ public class ActivityController : BaseController
             throw new BadRequestException($"請求的頁數({segmentRequest.Page})大於總頁數({totalPage})");
         }
 
+        // 解決 null 的問題
         segmentRequest.SortBy ??= "CreatedAt";
         segmentRequest.OrderBy ??= "Descending";
 
-        var properties = new List<string>() {  };
+        // 初始化 SortBy 列表
+        var properties = new List<Expression<Func<Activity, object>>>() { };
+        var sortBy = segmentRequest.SortBy;
 
-        var Expressions = new List<Expression<Func<Activity, object>>>() {  };
-
-        // 加入 sortBy List
-        if(segmentRequest.SortBy == "Trend")
+        // 加入 sortBy 列表
+        switch (sortBy)
         {
-            Expressions.Add(a => a.ActivityClickedCount);
-        }else if(segmentRequest.SortBy == "AddTime")
-        {
-            Expressions.Add(a => a.Status.FirstOrDefault(s => s.UserId == user.Id && s.ActivityId == a.Id).CreatedAt);
-        }else
-        {
-            properties.Add(segmentRequest.SortBy);
+            case "Trend":
+                properties.Add(a => a.ActivityClickedCount);
+                break;
+            case "AddTime":
+                properties.Add(a => a.CreatedAt);
+                break;
+            default:
+                var parameter = Expression.Parameter(typeof(Activity), "a");
+                var property = Expression.Property(parameter, sortBy);
+                var cast = Expression.Convert(property, typeof(object));
+                var lambda = Expression.Lambda<Func<Activity, object>>(cast, parameter);
+                properties.Add(lambda);
+                break;
         }
 
-
-        var orderedActivityList = DataHelper.GetSortedAndPagedData(activityList, properties, Expressions, segmentRequest.OrderBy, segmentRequest.Page, segmentRequest.CountPerPage);
+        // 分頁 & 排序
+        var orderedActivityList = DataHelper.GetSortedAndPagedData(activityList, properties, segmentRequest.OrderBy, segmentRequest.Page, segmentRequest.CountPerPage);
 
         var activityDTOList = _mapper.Map<List<ActivityDTO>>(orderedActivityList);
 
         // 根據使用者更改 Status
         activityDTOList.ForEach(x =>
         {
-            if (activityStatusIds.Contains(x.Id))
+            if (activityStatus.ContainsKey(x.Id))
             {
                 x.Status = activityStatus.GetValueOrDefault(x.Id, null);
             }
         });
 
-        var SegmentResponse = _mapper.Map<SegmentsResponseDTO<ActivityDTO>>(segmentRequest);
+        var SegmentResponse = _mapper.Map<ActivitySegmentResponseDTO>(segmentRequest);
 
         SegmentResponse.SearchData = activityDTOList;
         SegmentResponse.TotalPage = (totalCount / segmentRequest.CountPerPage) + 1;
@@ -339,32 +348,28 @@ public class ActivityController : BaseController
 
         segmentRequest.OrderBy ??= "descending";
 
-        var properties = new List<string>() {  };
-        var Expressions = new List<Expression<Func<Activity, object>>>() { a => a.ActivityClickedCount };
+        // 初始化 SortBy 列表
+        var properties = new List<Expression<Func<Activity, object>>>() { };
+        properties.Add(a => a.ActivityClickedCount);
 
-        var orderedActivityList = DataHelper.GetSortedAndPagedData(activityList, properties, Expressions, segmentRequest.OrderBy, segmentRequest.Page, segmentRequest.CountPerPage);
+        // 分頁 & 排序
+        var orderedActivityList = DataHelper.GetSortedAndPagedData(activityList, properties, segmentRequest.OrderBy, segmentRequest.Page, segmentRequest.CountPerPage);
 
-        var activityDTOList = _mapper.Map<List<ActivityDTO>>(orderedActivityList);
+        var activityDTOList = _mapper.Map<IEnumerable<ActivityDTO>>(orderedActivityList);
         var SegmentResponse = _mapper.Map<SegmentsResponseBaseDTO<ActivityDTO>>(segmentRequest);
 
         // 把 activity 中加入 user 的 status
         if (User.Identity.IsAuthenticated)
         {
             var userId = (Guid?)ViewData["UserId"] ?? Guid.Empty;
-            var user = await _userService.GetByIdAsync(userId, u => u.ActivityStatus);
-
-            if (user != null)
+            var activityStatus = await _userService.GetUserActivityStatusAsync(userId);
+            if (activityStatus != null)
             {
-                var activityStatus = user.ActivityStatus?.Select(a => new KeyValuePair<Guid, string>(a.ActivityId, a.Status)).ToDictionary(kv => kv.Key, kv => kv.Value);
-                var activityStatusIds = activityStatus.Select(kv => kv.Key);
                 // 根據使用者更改 Status
-                activityDTOList.ForEach(x =>
+                foreach (var activity in activityDTOList.Where(x => activityStatus.ContainsKey(x.Id)))
                 {
-                    if (activityStatusIds.Contains(x.Id))
-                    {
-                        x.Status = activityStatus.GetValueOrDefault(x.Id, null);
-                    }
-                });
+                    activity.Status = activityStatus[activity.Id];
+                }
             }
         }
 

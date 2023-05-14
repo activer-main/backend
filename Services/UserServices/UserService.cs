@@ -24,7 +24,7 @@ public class UserService : GenericService<User, Guid>
     /// </summary>
     /// <param name="email">Email</param>
     /// <returns>對應的 User</returns>
-    public async Task<User?> GetUserByEmailAsync(string email, params Expression<Func<User, object>>[] includes)
+    public async Task<User>? GetUserByEmailAsync(string email, params Expression<Func<User, object>>[] includes)
     {
         var query = _userRepository.Query();
         foreach (var include in includes)
@@ -50,6 +50,12 @@ public class UserService : GenericService<User, Guid>
             return null;
 
         return _configuration["Server:Domain"] + $"/api/user/avatar/{user.Avatar.Id}";
+    }
+
+    public async Task<Dictionary<Guid, string>> GetUserActivityStatusAsync(Guid userId)
+    {
+        var user = await GetByIdAsync(userId, u => u.ActivityStatus);
+        return user?.ActivityStatus?.ToDictionary(a => a.ActivityId, a => a.Status);
     }
 
     public bool VerifyVerificationCode(User User, string token)
@@ -88,4 +94,5 @@ public class UserService : GenericService<User, Guid>
             return true;
         return !User.UserEmailVerifications.Any(e => e.VerificationCode == token);
     }
+
 }

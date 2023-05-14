@@ -40,3 +40,9 @@ public class ActivitySegmentDTO : SegmentsRequestDTO
     public List<string>? Tags { get; set; } = new() { };
     public List<string>? Status { get; set; } = new() { };
 }
+
+public class ActivitySegmentResponseDTO : SegmentsResponseDTO<ActivityDTO>
+{
+    public List<string>? Tags { get; set; }
+    public List<string>? Status { get; set; }
+} 

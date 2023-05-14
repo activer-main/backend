@@ -19,10 +19,11 @@ public class SegmentsResponseBaseDTO<TEntity>
     public int Page { get; set; } = 1;
     public int TotalPage { get; set; }
     public int TotalData { get; set; }
-    public List<TEntity>? SearchData { get; set; }
+    public IEnumerable<TEntity>? SearchData { get; set; }
 }
 
 public class SegmentsResponseDTO<TEntity> : SegmentsResponseBaseDTO<TEntity>
 {
     public string? SortBy { get; set; }
 }
+
