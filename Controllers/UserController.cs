@@ -562,5 +562,13 @@ public class UserController : BaseController
         return professionDTOs;
     }
 
-
+    [AllowAnonymous]
+    [HttpGet("locations")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<ActionResult<List<CountyDTO>>> GetLocations()
+    {
+        var countyList = await _countyService.GetAllInlcudeAreaAsync();
+        var countyDTOList = _mapper.Map<List<CountyDTO>>(countyList);
+        return countyDTOList;
+    }
 }

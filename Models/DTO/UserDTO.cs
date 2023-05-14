@@ -65,6 +65,7 @@ public class CountyDTO
     public int Id { get; set; }
     public string CityName { get; set; }
     public string CityEngName { get; set; }
+    public List<AreaDTO> Areas { get; set; }
 }
 
 public class AreaDTO

@@ -16,6 +16,12 @@ public class CountyService : GenericService<County, int>
         _countyRepository = _unitOfWork.Repository<County, int>();
     }
 
+    public async Task<List<County>?> GetAllInlcudeAreaAsync()
+    {
+        var countyList = await _countyRepository.Query().Include(c => c.Areas).ToListAsync();
+        return countyList;
+    }
+
     public async Task<County?> GetByNameAsync(string name)
     {
         var query = _countyRepository.Query().Include(a => a.Areas);
