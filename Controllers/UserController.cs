@@ -549,4 +549,14 @@ public class UserController : BaseController
         await _emailService.SendEmailAsync(user.Email, subject, message);
         return Ok();
     }
+
+    [AllowAnonymous]
+    [HttpGet("professions")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<ActionResult<List<UserProfessionDTO>>> GetProfessions()
+    {
+        var professions = _professionService.GetAll();
+        var professionDTOs = _mapper.Map<List<UserProfessionDTO>>(professions);
+        return professionDTOs;
+    }
 }
