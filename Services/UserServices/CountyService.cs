@@ -18,7 +18,13 @@ public class CountyService : GenericService<County, int>
 
     public async Task<County?> GetByNameAsync(string name)
     {
-        var query = _countyRepository.Query();
-        return await query.FirstOrDefaultAsync(e => e.Content == name);
+        var query = _countyRepository.Query().Include(a => a.Areas);
+        return await query.FirstOrDefaultAsync(e => e.CityName == name);
+    }
+
+    public async Task<County?> GetByEngNameAsync(string name)
+    {
+        var query = _countyRepository.Query().Include(a => a.Areas);
+        return await query.FirstOrDefaultAsync(e => e.CityEngName == name);
     }
 }

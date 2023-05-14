@@ -127,7 +127,10 @@ public class UserController : BaseController
     {
         var userId = (Guid?)ViewData["UserId"] ?? Guid.Empty;
 
-        var user = await _userService.GetByIdAsync(userId);
+        var user = await _userService.GetByIdAsync(userId, 
+            u => u.County,
+            u => u.Area
+            );
         if (user == null)
         {
             throw new UnauthorizedException("使用者驗證失敗");
@@ -183,26 +186,25 @@ public class UserController : BaseController
             user.Phone = patchDoc.Phone;
         }
 
-        // 更新國家
-        if (!string.IsNullOrEmpty(patchDoc.County))
+        // 更新地區
+        if (patchDoc.County != null)
         {
-            var county = await _countyService.GetByNameAsync(patchDoc.County);
+            var countyName = patchDoc.County.CityName;
+            var areaName = patchDoc.County.Area.AreaName;
+            var county = await _countyService.GetByNameAsync(countyName);
             if (county == null)
             {
-                throw new BadRequestException($"County: {patchDoc.County} 不在選項中");
+                throw new BadRequestException($"縣市: {countyName} 不在選項中");
             }
+            county.Areas ??= new List<Area>() { };
+            var area = county.Areas.FirstOrDefault(x => x.AreaName == areaName);
+            if (area == null)
+            {
+                throw new BadRequestException($"區域: {countyName} 不在 縣市: {countyName} 中");
+            }
+            user.County = county;
+            user.Area = area;
         }   
-
-        // 更新地區
-        if (!string.IsNullOrEmpty(patchDoc.Area))
-        {
-            var area = await _areaService.GetByNameAsync(patchDoc.Area);
-            if (area != null)
-                user.Area = area;
-            else user.Area = new Area() { 
-                Content = patchDoc.Area
-            };
-        }
 
         _userService.Update(user);
         await _userService.SaveChangesAsync();
@@ -559,4 +561,6 @@ public class UserController : BaseController
         var professionDTOs = _mapper.Map<List<UserProfessionDTO>>(professions);
         return professionDTOs;
     }
+
+
 }

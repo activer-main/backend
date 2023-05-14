@@ -37,13 +37,13 @@ public class User : BaseEntity, IEntity<Guid>
     public Avatar? Avatar { get; set; }
     public int? AvatarId { get; set; }
 
+    public County? County { get; set; }
+    public int? CountyId { get; set; }
+
     public Area? Area { get; set; }
     public int? AreaId { get; set; }
 
     public List<Profession>? Professions { get; set; }
-
-    public County? County { get; set; }
-    public int? CountyId { get; set; }
 
     public List<SearchHistory>? SearchHistory { get; set; } = new List<SearchHistory> { };
 
@@ -81,7 +81,15 @@ public class Area : BaseEntity, IEntity<int>
 {
     [Key]
     public int Id { get; set;}
-    public string Content { get; set; }
+    public string? ZipCode { get; set; }
+    public string AreaName { get; set; }
+    public string AreaEngName { get; set; }
+
+    
+    public int CountyId { get; set; }
+
+    [Required]
+    public County County { get; set; }
 
     [JsonIgnore]
     public List<User>? Users { get; set; }
@@ -90,11 +98,15 @@ public class Area : BaseEntity, IEntity<int>
 public class County: BaseEntity, IEntity<int>
 {
     public int Id { get; set; }
-    public string Content { get; set; }
+    public string CityName { get; set; }
+    public string CityEngName { get; set; }
+
+    public List<Area>? Areas { get; set; } 
 
     [JsonIgnore]
     public List<User>? Users { get; set; }
 }
+
 
 [Index(nameof(Content), IsUnique = true)]
 public class Profession : BaseEntity, IEntity<int>

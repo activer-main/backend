@@ -16,9 +16,21 @@ public class AreaService : GenericService<Area, int>
         _areaRepository = _unitOfWork.Repository<Area, int>();
     }
 
-    public async Task<Area?> GetByNameAsync(string name)
+    public async Task<IEnumerable<Area>?> GetByNameAsync(string name)
     {
         var query = _areaRepository.Query();
-        return await query.FirstOrDefaultAsync(e => e.Content == name);
+        return await query.Where(e => e.AreaName == name).ToListAsync();
+    }
+
+    public async Task<IEnumerable<Area>?> GetByEngNameAsync(string name)
+    {
+        var query = _areaRepository.Query();
+        return await query.Where(e => e.AreaEngName == name).ToListAsync();
+    }
+
+    public async Task<Area?> GetByZipCode(string zipCode)
+    {
+        var query = _areaRepository.Query();
+        return await query.FirstOrDefaultAsync(e => e.ZipCode == zipCode);
     }
 }

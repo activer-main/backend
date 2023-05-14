@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
 using ActiverWebAPI.Models.DBEntity;
 using Microsoft.IdentityModel.Tokens;
+using System.Linq;
 
 namespace ActiverWebAPI.Controllers;
 
@@ -18,6 +19,7 @@ public class InternalController : BaseController
     private readonly ActivityService _activityService;
     private readonly UserService _userService;
     private readonly ProfessionService _professionService;
+    private readonly CountyService _countyService;
     private readonly TagService _tagService;
     private readonly LocationService _locationService;
     private readonly IMapper _mapper;
@@ -26,6 +28,7 @@ public class InternalController : BaseController
         ActivityService activityService,
         UserService userService,
         ProfessionService professionService,
+        CountyService countyService,
         TagService tagService,
         LocationService locationService,
         IMapper mapper
@@ -33,6 +36,7 @@ public class InternalController : BaseController
     {
         _activityService = activityService;
         _userService = userService;
+        _countyService = countyService;
         _tagService = tagService;
         _locationService = locationService;
         _professionService = professionService;
@@ -150,4 +154,76 @@ public class InternalController : BaseController
 
         return Ok($"新增的職業: {string.Join(", ", newProfessions)};已存在的職業: {string.Join(", ", existProfessions)}");
     }
+
+    [Authorize(Roles = "Admin, InternalUser")]
+    [SwaggerOperation(
+        Summary = "Delete Professions for internal users only"
+    )]
+    [HttpDelete("Professions")]
+    [Produces("application/json")]
+    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(string))]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> DeleteProfessions([FromBody] List<string> professions)
+    {
+        var notExistProfessions = new List<string>() { };
+        var deletedProfessions = new List<string>() { };
+
+        for (int i = 0; i < professions.Count; i++)
+        {
+            var professionName = professions[i];
+            var profession = await _professionService.GetByNameAsync(professionName);
+            if (profession == null)
+            {
+                notExistProfessions.Add(professionName);
+            }
+            else
+            {
+                _professionService.Delete(profession);
+                deletedProfessions.Add(professionName);
+            }
+        }
+
+        await _professionService.SaveChangesAsync();
+
+        return Ok($"不存在的職業: {string.Join(", ", notExistProfessions)};已刪除的職業: {string.Join(", ", deletedProfessions)}");
+    }
+
+    [Authorize(Roles = "Admin, InternalUser")]
+    [SwaggerOperation(
+         Summary = "Post Professions for internal users only"
+     )]
+    [HttpPost("Locations")]
+    [Produces("application/json")]
+    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(string))]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> PostLocation([FromBody] List<CountyPostDTO> countyDTOs)
+    {
+        for (int i = 0; i < countyDTOs.Count; i++)
+        {
+            var countyName = countyDTOs[i].CityName;
+            var county = await _countyService.GetByNameAsync(countyName);
+
+            if (county != null)
+            {
+                county.Areas ??= new List<Area>();
+                countyDTOs[i].Areas.ForEach(a => {
+                    var area = _mapper.Map<Area>(a);
+                    if (!county.Areas.Any(x => x.ZipCode == area.ZipCode ))
+                    {
+                        county.Areas.Add(area);
+                    }
+                });
+                _countyService.Update(county);
+            } else
+            {
+                county = _mapper.Map<County>(countyDTOs[i]);
+                _countyService.Add(county);
+            }
+        }
+
+        await _countyService.SaveChangesAsync();
+
+        return Ok();
+    }
+
 }
