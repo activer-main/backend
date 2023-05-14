@@ -62,7 +62,7 @@ public class ActivityController : BaseController
         }
 
         // 獲取所有活動
-        var activities = _activityService.GetAllActivitiesIncludeAll();
+        var activities = _activityService.GetAllActivitiesIncludeAll().AsEnumerable();
 
         // 確認 SortBy 為可以接受的值
         var allowSortBySet = new HashSet<string> { "Trend", "CreatedAt", "AddTime" };
@@ -83,7 +83,9 @@ public class ActivityController : BaseController
 
             // Tag Filter (至少要有一個 tag 符合)
             activities = activities
-                .Where(a => !a.Tags.IsNullOrEmpty() && (tagIds == null || a.Tags.Any(t => tagIds.Contains(t.Id))))
+                .Where(a => !a.Tags.IsNullOrEmpty())
+                .AsEnumerable()
+                .Where(a => tagIds == null || a.Tags.Any(t => tagIds.Contains(t.Id)))
                 .OrderByDescending(a => a.Tags.Count(t => tagIds.Contains(t.Id)));
         }
 
@@ -123,7 +125,7 @@ public class ActivityController : BaseController
         }
 
         // 分頁 & 排序
-        var orderedActivityList = DataHelper.GetSortedAndPagedData(activities, properties, segmentRequest.OrderBy, segmentRequest.Page, segmentRequest.CountPerPage);
+        var orderedActivityList = DataHelper.GetSortedAndPagedData(activities.AsQueryable(), properties, segmentRequest.OrderBy, segmentRequest.Page, segmentRequest.CountPerPage);
 
         // 轉換型態 Activity => ActivityDTO 
         var activityDTOList = _mapper.Map<IEnumerable<ActivityDTO>>(orderedActivityList);
@@ -442,8 +444,19 @@ public class ActivityController : BaseController
     [HttpDelete("activityStatus")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult> DeleteActivitiesStatus(List<Guid> id)
+    public async Task<ActionResult> DeleteActivitiesStatus(IEnumerable<Guid> ids)
     {
+        var userId = (Guid?)ViewData["UserId"] ?? Guid.Empty;
+        var user = await _userService.GetByIdAsync(userId, u => u.ActivityStatus);
+        if (user == null)
+        {
+            throw new UserNotFoundException();
+        }
+
+        user.ActivityStatus = user.ActivityStatus?.Where(ac => !ids.Contains(ac.ActivityId)).ToList();
+        _userService.Update(user);
+        await _userService.SaveChangesAsync();
+
         return Ok();
     }
 }
