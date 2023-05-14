@@ -64,43 +64,16 @@ public class ActivityController : BaseController
         // 獲取所有活動
         var activities = _activityService.GetAllActivitiesIncludeAll().AsEnumerable();
 
+        // 給 SortBy 與 OrderBy 預設值
+        segmentRequest.SortBy ??= "CreateAt";
+        segmentRequest.OrderBy ??= "descending";
+
         // 確認 SortBy 為可以接受的值
         var allowSortBySet = new HashSet<string> { "Trend", "CreatedAt", "AddTime" };
         if (!allowSortBySet.Contains(segmentRequest.SortBy))
         {
             throw new BadRequestException($"排序: '{segmentRequest.SortBy}' 不在可接受的排序列表: '{string.Join(", ", allowSortBySet)}'");
         }
-
-        // Tag filter
-        if (!segmentRequest.Tags.IsNullOrEmpty())
-        {
-            // 獲取所有 tag Id
-            var tagIds = segmentRequest.Tags?
-                .Select(_tagService.GetTagByText)
-                .Where(x => x != null)
-                .Select(t => t.Id)
-                .ToList();
-
-            // Tag Filter (至少要有一個 tag 符合)
-            activities = activities
-                .Where(a => !a.Tags.IsNullOrEmpty())
-                .AsEnumerable()
-                .Where(a => tagIds == null || a.Tags.Any(t => tagIds.Contains(t.Id)))
-                .OrderByDescending(a => a.Tags.Count(t => tagIds.Contains(t.Id)));
-        }
-
-        var totalCount = activities.Count();
-        var totalPage = totalCount / segmentRequest.CountPerPage + (totalCount % segmentRequest.CountPerPage > 0 ? 1 : 0);
-
-        // 檢查 請求頁數 < 總頁數
-        if (segmentRequest.Page > totalPage)
-        {
-            throw new BadRequestException($"請求的頁數({segmentRequest.Page})大於總頁數({totalPage})");
-        }
-
-        // 給 SortBy 與 OrderBy 預設值
-        segmentRequest.SortBy ??= "CreateAt";
-        segmentRequest.OrderBy ??= "descending";
 
         // 初始化 SortBy 列表
         var properties = new List<Expression<Func<Activity, object>>>() { };
@@ -124,6 +97,35 @@ public class ActivityController : BaseController
                 break;
         }
 
+        // Tag filter
+        if (!segmentRequest.Tags.IsNullOrEmpty())
+        {
+            // 獲取所有 tag Id
+            var tagIds = segmentRequest.Tags
+                .Select(_tagService.GetTagByText)
+                .Where(x => x != null)
+                .Select(t => t.Id)
+                .ToList();
+
+            // Tag Filter (至少要有一個 tag 符合)
+            activities = activities
+                .Where(a => !a.Tags.IsNullOrEmpty())
+                .Where(a => tagIds == null || a.Tags.Any(t => tagIds.Contains(t.Id)));
+
+            // 加入 Tag 排序
+            properties.Add(a => a.Tags.Count(t => tagIds.Contains(t.Id)));
+        }
+
+        // 計算總頁數
+        var totalCount = activities.Count();
+        var totalPage = totalCount / segmentRequest.CountPerPage + (totalCount % segmentRequest.CountPerPage > 0 ? 1 : 0);
+
+        // 檢查 請求頁數 < 總頁數
+        if (segmentRequest.Page > totalPage)
+        {
+            throw new BadRequestException($"請求的頁數({segmentRequest.Page})大於總頁數({totalPage})");
+        }
+
         // 分頁 & 排序
         var orderedActivityList = DataHelper.GetSortedAndPagedData(activities.AsQueryable(), properties, segmentRequest.OrderBy, segmentRequest.Page, segmentRequest.CountPerPage);
 
@@ -145,6 +147,7 @@ public class ActivityController : BaseController
             }
         }
 
+        // 轉換型態
         var response = _mapper.Map<ActivitySegmentResponseDTO>(segmentRequest);
         response.SearchData = activityDTOList;
         response.TotalData = totalCount;
