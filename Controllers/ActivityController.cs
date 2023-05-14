@@ -79,24 +79,6 @@ public class ActivityController : BaseController
         var properties = new List<Expression<Func<Activity, object>>>() { };
         var sortBy = segmentRequest.SortBy;
 
-        // 加入 sortBy 列表
-        switch (sortBy)
-        {
-            case "Trend":
-                properties.Add(a => a.ActivityClickedCount);
-                break;
-            case "AddTime":
-                properties.Add(a => a.CreatedAt);
-                break;
-            default:
-                var parameter = Expression.Parameter(typeof(Activity), "a");
-                var property = Expression.Property(parameter, sortBy);
-                var cast = Expression.Convert(property, typeof(object));
-                var lambda = Expression.Lambda<Func<Activity, object>>(cast, parameter);
-                properties.Add(lambda);
-                break;
-        }
-
         // Tag filter
         if (!segmentRequest.Tags.IsNullOrEmpty())
         {
@@ -114,6 +96,24 @@ public class ActivityController : BaseController
 
             // 加入 Tag 排序
             properties.Add(a => a.Tags.Count(t => tagIds.Contains(t.Id)));
+        }
+
+        // 加入 sortBy 列表
+        switch (sortBy)
+        {
+            case "Trend":
+                properties.Add(a => a.ActivityClickedCount);
+                break;
+            case "AddTime":
+                properties.Add(a => a.CreatedAt);
+                break;
+            default:
+                var parameter = Expression.Parameter(typeof(Activity), "a");
+                var property = Expression.Property(parameter, sortBy);
+                var cast = Expression.Convert(property, typeof(object));
+                var lambda = Expression.Lambda<Func<Activity, object>>(cast, parameter);
+                properties.Add(lambda);
+                break;
         }
 
         // 計算總頁數
@@ -263,25 +263,6 @@ public class ActivityController : BaseController
                 segmentRequest.Status.IsNullOrEmpty() || segmentRequest.Status.Contains(activityStatus[a.Id])
             );
 
-        var tagIds = segmentRequest.Tags?.Select(_tagService.GetTagByText).Where(x => x != null).Select(t => t.Id).ToList();
-
-        // 如果有 tag filter list
-        if (!tagIds.IsNullOrEmpty())
-        {
-            // Tag Filter
-            activityList = activityList
-                .OrderBy(a => !a.Tags.IsNullOrEmpty() ? a.Tags.Count(t => tagIds.Contains(t.Id)) : 0)
-                .Where(a => !a.Tags.IsNullOrEmpty() && a.Tags.Any(t => tagIds.Contains(t.Id)));
-        }
-
-        var totalCount = activityList.Count();
-        var totalPage = (totalCount / segmentRequest.CountPerPage) + 1;
-
-        if (segmentRequest.Page > totalPage)
-        {
-            throw new BadRequestException($"請求的頁數({segmentRequest.Page})大於總頁數({totalPage})");
-        }
-
         // 解決 null 的問題
         segmentRequest.SortBy ??= "CreatedAt";
         segmentRequest.OrderBy ??= "Descending";
@@ -289,6 +270,25 @@ public class ActivityController : BaseController
         // 初始化 SortBy 列表
         var properties = new List<Expression<Func<Activity, object>>>() { };
         var sortBy = segmentRequest.SortBy;
+
+        // Tag filter
+        if (!segmentRequest.Tags.IsNullOrEmpty())
+        {
+            // 獲取所有 tag Id
+            var tagIds = segmentRequest.Tags
+                .Select(_tagService.GetTagByText)
+                .Where(x => x != null)
+                .Select(t => t.Id)
+                .ToList();
+
+            // Tag Filter (至少要有一個 tag 符合)
+            activityList = activityList
+                .Where(a => !a.Tags.IsNullOrEmpty())
+                .Where(a => tagIds == null || a.Tags.Any(t => tagIds.Contains(t.Id)));
+
+            // 加入 Tag 排序
+            properties.Add(a => a.Tags.Count(t => tagIds.Contains(t.Id)));
+        }
 
         // 加入 sortBy 列表
         switch (sortBy)
@@ -308,9 +308,20 @@ public class ActivityController : BaseController
                 break;
         }
 
+        // 計算總頁數
+        var totalCount = activityList.Count();
+        var totalPage = (totalCount / segmentRequest.CountPerPage) + 1;
+
+        // 檢查 頁數 < 總頁數
+        if (segmentRequest.Page > totalPage)
+        {
+            throw new BadRequestException($"請求的頁數({segmentRequest.Page})大於總頁數({totalPage})");
+        }
+
         // 分頁 & 排序
         var orderedActivityList = DataHelper.GetSortedAndPagedData(activityList, properties, segmentRequest.OrderBy, segmentRequest.Page, segmentRequest.CountPerPage);
 
+        // 轉換型態
         var activityDTOList = _mapper.Map<List<ActivityDTO>>(orderedActivityList);
 
         // 根據使用者更改 Status
