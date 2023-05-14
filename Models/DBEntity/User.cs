@@ -96,6 +96,7 @@ public class County: BaseEntity, IEntity<int>
     public List<User>? Users { get; set; }
 }
 
+[Index(nameof(Content), IsUnique = true)]
 public class Profession : BaseEntity, IEntity<int>
 {
     [Key]

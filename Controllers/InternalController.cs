@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
 using ActiverWebAPI.Models.DBEntity;
+using Microsoft.IdentityModel.Tokens;
 
 namespace ActiverWebAPI.Controllers;
 
@@ -16,6 +17,7 @@ public class InternalController : BaseController
 {
     private readonly ActivityService _activityService;
     private readonly UserService _userService;
+    private readonly ProfessionService _professionService;
     private readonly TagService _tagService;
     private readonly LocationService _locationService;
     private readonly IMapper _mapper;
@@ -23,6 +25,7 @@ public class InternalController : BaseController
     public InternalController(
         ActivityService activityService,
         UserService userService,
+        ProfessionService professionService,
         TagService tagService,
         LocationService locationService,
         IMapper mapper
@@ -32,6 +35,7 @@ public class InternalController : BaseController
         _userService = userService;
         _tagService = tagService;
         _locationService = locationService;
+        _professionService = professionService;
         _mapper = mapper;
     }
 
@@ -109,5 +113,41 @@ public class InternalController : BaseController
 
         var activityDTOs = _mapper.Map<List<ActivityDTO>>(activities);
         return activityDTOs;
+    }
+
+    [Authorize(Roles = "Admin, InternalUser")]
+    [SwaggerOperation(
+        Summary = "Post Professions for internal users only"
+    )]
+    [HttpPost("Professions")]
+    [Produces("application/json")]
+    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(string))]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> PostProfessions([FromBody] List<string> professions)
+    {
+        var newProfessions = new List<string>(){ };
+        var existProfessions = new List<string>(){ };
+
+        for (int i =0; i< professions.Count; i++)
+        {
+            var professionName = professions[i];
+            var profession = await _professionService.GetByNameAsync(professionName);
+            if (profession == null && !professionName.IsNullOrEmpty() && !_professionService.GetLocal().Any(p => p.Content == professionName))
+            {
+                _professionService.Add(new Profession
+                {
+                    Content = professionName
+                });
+                newProfessions.Add(professionName);
+            }
+            else
+            {
+                existProfessions.Add(professionName);
+            }
+        }
+    
+        await _professionService.SaveChangesAsync();
+
+        return Ok($"新增的職業: {string.Join(", ", newProfessions)};已存在的職業: {string.Join(", ", existProfessions)}");
     }
 }
