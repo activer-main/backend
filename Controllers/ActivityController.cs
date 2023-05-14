@@ -113,9 +113,7 @@ public class ActivityController : BaseController
                 .Where(a => tagIds == null || a.Tags.Any(t => tagIds.Contains(t.Id)));
 
             // 加入 Tag 排序
-            properties.AddRange(new List<Expression<Func<Activity, object>>>() {
-                a => a.Tags.Count(t => tagIds.Contains(t.Id))
-            });
+            properties.Add(a => a.Tags.Count(t => tagIds.Contains(t.Id)));
         }
 
         // 計算總頁數
