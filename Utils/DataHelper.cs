@@ -62,7 +62,7 @@ public static class DataHelper
             throw new ArgumentException("Expressions cannot be null or empty.");
         }
 
-        var orderedData = source.AsQueryable().OrderBy(expressions[0]);
+        var orderedData = source.AsQueryable().OrderByDescending(expressions[0]);
 
         for (int i = 1; i < expressions.Count; i++)
         {
