@@ -11,9 +11,14 @@ public class TagDTO
     public int ActivityAmount { get; set; }
 }
 
-
 public class TagPostDTO
 {
     public string Text { get; set; }
     public string Type { get; set; }
+}
+
+public class TagFilterDTO
+{
+    public string? Key { get; set; }
+    public IEnumerable<string>? Type { get; set; }
 }

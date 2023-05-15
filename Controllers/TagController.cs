@@ -4,6 +4,7 @@ using ActiverWebAPI.Services.TagServices;
 using AutoMapper;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.IdentityModel.Tokens;
 
 namespace ActiverWebAPI.Controllers;
 
@@ -22,9 +23,18 @@ public class TagController : BaseController
 
     [AllowAnonymous]
     [HttpGet]
-    public IEnumerable<TagDTO> GetAllTags()
+    public IEnumerable<TagDTO> GetAllTags([FromQuery] TagFilterDTO filter)
     {
         var tags = _tagService.GetAll(t => t.UserVoteTagInActivity, t => t.Activities);
+        if (!filter.Type.IsNullOrEmpty())
+        {
+            tags = tags.Where(t => filter.Type.Contains(t.Type));
+        }
+        if (!filter.Key.IsNullOrEmpty())
+        {
+            tags = tags.Where(t => t.Text.Contains(filter.Key));
+        }
+
         var tagsDTO = _mapper.Map<IEnumerable<TagDTO>>(tags);
         return tagsDTO;
     }
@@ -46,5 +56,13 @@ public class TagController : BaseController
         await _tagService.SaveChangesAsync();
 
         return tagDTO;
+    }
+
+    [AllowAnonymous]
+    [HttpGet("Type")]
+    public async Task<IEnumerable<string>> GetAllTagType()
+    {
+        var tagTypes = _tagService.GetAll().Select(t => t.Type).Distinct();
+        return tagTypes;
     }
 }

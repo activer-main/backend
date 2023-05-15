@@ -11,8 +11,11 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.CodeAnalysis;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using System.Globalization;
 using System.Linq;
 using System.Linq.Expressions;
+using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace ActiverWebAPI.Controllers;
 
@@ -65,7 +68,7 @@ public class ActivityController : BaseController
         }
 
         // 獲取所有活動
-        var activities = _activityService.GetAllActivitiesIncludeAll().AsEnumerable();
+        var activities = _activityService.GetAllActivitiesIncludeAll();
 
         // 給 SortBy 與 OrderBy 預設值
         segmentRequest.SortBy ??= "CreateAt";
@@ -86,12 +89,14 @@ public class ActivityController : BaseController
                 .Select(_tagService.GetTagByText)
                 .Where(x => x != null)
                 .Select(t => t.Id)
-                .ToList();
+                .AsEnumerable();
 
             // Tag Filter (至少要有一個 tag 符合)
-            activities = activities
-                .Where(a => !a.Tags.IsNullOrEmpty())
-                .Where(a => tagIds == null || a.Tags.Any(t => tagIds.Contains(t.Id)));
+            if (tagIds != null)
+            {
+                activities = activities
+                    .Where(a => a.Tags.Any(t => tagIds.Contains(t.Id)));
+            }
 
             // 加入 Tag 排序
             properties.Add(a => a.Tags.Count(t => tagIds.Contains(t.Id)));
@@ -126,7 +131,7 @@ public class ActivityController : BaseController
         }
 
         // 分頁 & 排序
-        var orderedActivityList = DataHelper.GetSortedAndPagedData(activities.AsQueryable(), properties, segmentRequest.OrderBy, segmentRequest.Page, segmentRequest.CountPerPage);
+        var orderedActivityList = DataHelper.GetSortedAndPagedData(activities, properties, segmentRequest.OrderBy, segmentRequest.Page, segmentRequest.CountPerPage);
 
         // 轉換型態 Activity => ActivityDTO 
         var activityDTOList = _mapper.Map<IEnumerable<ActivityDTO>>(orderedActivityList);
@@ -268,12 +273,14 @@ public class ActivityController : BaseController
                 .Select(_tagService.GetTagByText)
                 .Where(x => x != null)
                 .Select(t => t.Id)
-                .ToList();
+                .AsEnumerable();
 
             // Tag Filter (至少要有一個 tag 符合)
-            activityList = activityList
-                .Where(a => !a.Tags.IsNullOrEmpty())
-                .Where(a => tagIds == null || a.Tags.Any(t => tagIds.Contains(t.Id)));
+            if (tagIds != null)
+            {
+                activityList = activityList
+                    .Where(a => a.Tags.Any(t => tagIds.Contains(t.Id)));
+            }
 
             // 加入 Tag 排序
             properties.Add(a => a.Tags.Count(t => tagIds.Contains(t.Id)));
@@ -478,6 +485,81 @@ public class ActivityController : BaseController
             Status = _activityFilterValidationService.GetAllowStatusSet(),
             Tags = tagsDTO
         };
+    }
+
+    [AllowAnonymous]
+    [HttpGet("search")]
+    public async Task<ActionResult<ActivitySearchResponseDTO>> GetSearchActivity([FromQuery] ActivitySearchRequestDTO request)
+    {
+        var activities = _activityService.GetAllActivitiesIncludeAll();
+
+        if (!request.Date.IsNullOrEmpty())
+        {
+            DateTime requestDate;
+            if (DateTime.TryParseExact(request.Date, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out requestDate)) { 
+                activities.Where(a => a.CreatedAt.Date == requestDate.Date);
+            }
+            else
+            {
+                throw new Exception("Date Parse 錯誤，請使用格式 yyyy-MM-dd");
+            }
+        }
+
+        if (!request.keyword.IsNullOrEmpty())
+        {
+            var keywords = request.keyword.Trim().ToLower().Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+            foreach (var keyword in keywords)
+            {
+                activities = activities.Where(a => EF.Functions.Like(a.Title, $"%{keyword}%") || EF.Functions.Like(a.Content, $"%{keyword}%") || EF.Functions.Like(a.Subtitle, $"%{keyword}%"));
+            }
+        }
+
+        var properties = new List<Expression<Func<Activity, object>>>() { };
+
+        // Tag filter
+        if (!request.Tags.IsNullOrEmpty())
+        {
+            // 獲取所有 tag Id
+            var tagIds = request.Tags
+                .Select(_tagService.GetTagByText)
+                .Where(x => x != null)
+                .Select(t => t.Id)
+                .AsEnumerable();
+
+            // Tag Filter (至少要有一個 tag 符合)
+            if (tagIds != null)
+            {
+                activities = activities
+                    .Where(a => a.Tags.Any(t => tagIds.Contains(t.Id)));
+            }
+
+            // 加入 Tag 排序
+            properties.Add(a => a.Tags.Count(t => tagIds.Contains(t.Id)));
+        }
+
+        // 計算總頁數
+        var totalCount = activities.Count();
+        var totalPage = totalCount / request.CountPerPage + (totalCount % request.CountPerPage > 0 ? 1 : 0);
+
+        // 檢查 請求頁數 < 總頁數
+        if (request.Page > totalPage)
+        {
+            throw new BadRequestException($"請求的頁數({request.Page})大於總頁數({totalPage})");
+        }
+
+        // 分頁 & 排序
+        var orderedActivityList = DataHelper.GetSortedAndPagedData(activities, properties, request.OrderBy, request.Page, request.CountPerPage);
+
+        // 轉換型態 Activity => ActivityDTO 
+        var activityDTOList = _mapper.Map<IEnumerable<ActivityDTO>>(orderedActivityList);
+
+        // 轉換型態
+        var response = _mapper.Map<ActivitySearchResponseDTO>(request);
+        response.SearchData = activityDTOList;
+        response.TotalData = totalCount;
+        response.TotalPage = totalPage;
+
+        return response;
     }
 }
 
