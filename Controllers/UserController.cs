@@ -23,7 +23,6 @@ public class UserController : BaseController
     private readonly TokenService _tokenService;
     private readonly IPasswordHasher _passwordHasher;
     private readonly IEmailService _emailService;
-    private readonly AreaService _areaService;
     private readonly ProfessionService _professionService;
     private readonly CountyService _countyService;
     private readonly IMapper _mapper;
@@ -35,7 +34,6 @@ public class UserController : BaseController
         TokenService tokenService,
         IPasswordHasher passwordHasher,
         IEmailService emailService,
-        AreaService areaService,
         ProfessionService professionService,
         CountyService countyService)
     {
@@ -45,7 +43,6 @@ public class UserController : BaseController
         _tokenService = tokenService;
         _passwordHasher = passwordHasher;
         _emailService = emailService;
-        _areaService = areaService;
         _professionService = professionService;
         _countyService = countyService;
     }

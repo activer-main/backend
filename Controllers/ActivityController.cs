@@ -471,12 +471,15 @@ public class ActivityController : BaseController
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActivityFilterDTO> GetActivityFilterValue()
     {
+        var tags = _tagService.GetAll();
+        var tagsDTO = _mapper.Map<IEnumerable<TagDTO>>(tags);
+
         return new ActivityFilterDTO
         {
-            Status = _activityFilterValidationService.GetAllowStatusSet()
+            Status = _activityFilterValidationService.GetAllowStatusSet(),
+            Tags = tagsDTO
         };
     }
 }
 
-
-
+ 
