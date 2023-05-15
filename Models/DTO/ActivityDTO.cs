@@ -10,6 +10,7 @@ public class ActivityDTO
     public string? Html { get; set; }
     public string? Status { get; set; }
     public DateTime? AddTime { get; set; }
+    public DateTime CreateAt { get; set; }
     public List<string>? Fee { get; set; }
     public List<string>? Images { get; set; }
     public List<string>? Connections { get; set; }

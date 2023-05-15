@@ -34,6 +34,7 @@ public class MappingProfile : Profile
             .ForMember(dest => dest.Connections, opt => opt.MapFrom(src => src.Connections == null ? null : src.Connections.Select(x => x.Content)))
             .ForMember(dest => dest.Holders, opt => opt.MapFrom(src => src.Holders == null ? null : src.Holders.Select(x => x.HolderName)))
             .ForMember(dest => dest.Objectives, opt => opt.MapFrom(src => src.Objectives == null ? null : src.Objectives.Select(x => x.ObjectiveName)))
+            .ForMember(dest => dest.CreateAt, opt => opt.MapFrom(src => src.CreatedAt))
             .ForMember(dest => dest.Tags, opt => opt.MapFrom(src => src.Tags == null ? null : src.Tags.Select(x => new TagDTO {
                 Id = x.Id,
                 Text = x.Text,
