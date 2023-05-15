@@ -8,7 +8,6 @@ using Microsoft.Extensions.Configuration;
 using ActiverWebAPI.Enums;
 using ActiverWebAPI.Interfaces.UnitOfWork;
 using Microsoft.EntityFrameworkCore;
-using ActiverWebAPI.Interfaces.Repository;
 using ActiverWebAPI.Services.TagServices;
 
 public class MappingProfile : Profile

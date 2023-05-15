@@ -1,4 +1,6 @@
-﻿namespace ActiverWebAPI.Models.DTO;
+﻿using ActiverWebAPI.Models.DBEntity;
+
+namespace ActiverWebAPI.Models.DTO;
 
 public class ActivityDTO
 {
@@ -47,4 +49,10 @@ public class ActivitySegmentResponseDTO : SegmentsResponseDTO<ActivityDTO>
 {
     public List<string>? Tags { get; set; }
     public List<string>? Status { get; set; }
-} 
+}
+
+public class ActivityFilterDTO
+{
+    public IEnumerable<TagDTO>? Tags { get; set; }
+    public IEnumerable<string>? Status { get; set; }
+}

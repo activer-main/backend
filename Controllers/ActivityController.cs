@@ -24,18 +24,21 @@ public class ActivityController : BaseController
     private readonly UserService _userService;
     private readonly TagService _tagService;
     private readonly IMapper _mapper;
+    private readonly ActivityFilterValidationService _activityFilterValidationService;
 
     public ActivityController(
         ActivityService activityService,
         UserService userService,
         TagService tagService,
-        IMapper mapper
+        IMapper mapper,
+        ActivityFilterValidationService activityFilterValidationService
     )
     {
         _activityService = activityService;
         _userService = userService;
         _tagService = tagService;
         _mapper = mapper;
+        _activityFilterValidationService = activityFilterValidationService;
     }
 
     /// <summary>
@@ -69,11 +72,7 @@ public class ActivityController : BaseController
         segmentRequest.OrderBy ??= "descending";
 
         // 確認 SortBy 為可以接受的值
-        var allowSortBySet = new HashSet<string> { "Trend", "CreatedAt", "AddTime" };
-        if (!allowSortBySet.Contains(segmentRequest.SortBy))
-        {
-            throw new BadRequestException($"排序: '{segmentRequest.SortBy}' 不在可接受的排序列表: '{string.Join(", ", allowSortBySet)}'");
-        }
+        _activityFilterValidationService.ValidateSortBy(segmentRequest.SortBy);
 
         // 初始化 SortBy 列表
         var properties = new List<Expression<Func<Activity, object>>>() { };
@@ -231,21 +230,10 @@ public class ActivityController : BaseController
         );
 
         // 確認 SortBy 為可以接受的值
-        var allowSortBySet = new HashSet<string> { "Trend", "CreatedAt", "AddTime" };
-        if (!segmentRequest.SortBy.IsNullOrEmpty() && !allowSortBySet.Contains(segmentRequest.SortBy))
-        {
-            throw new BadRequestException($"排序: '{segmentRequest.SortBy}' 不在可接受的排序列表: '{string.Join(", ", allowSortBySet)}'");
-        }
+        _activityFilterValidationService.ValidateSortBy(segmentRequest.SortBy);
 
         // 確認 Status 為可以接受的值
-        var allowStatusSet = new HashSet<string> { "願望", "已註冊", "已完成" };
-        segmentRequest.Status?.ForEach(s =>
-        {
-            if (!allowStatusSet.Contains(s))
-            {
-                throw new BadRequestException($"活動狀態: '{s}' 不在可接受的狀態列表: '{string.Join(", ", allowStatusSet)}'");
-            }
-        });
+        _activityFilterValidationService.ValidateStatus(segmentRequest.Status);
 
         // 確認 User 存在
         if (user == null)
@@ -475,6 +463,18 @@ public class ActivityController : BaseController
         await _userService.SaveChangesAsync();
 
         return Ok();
+    }
+
+    [AllowAnonymous]
+    [HttpGet("activityFilterValue")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActivityFilterDTO> GetActivityFilterValue()
+    {
+        return new ActivityFilterDTO
+        {
+            Status = _activityFilterValidationService.GetAllowStatusSet()
+        };
     }
 }
 

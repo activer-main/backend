@@ -60,6 +60,7 @@ builder.Services.AddScoped(typeof(IGenericService<,>), typeof(GenericService<,>)
 builder.Services.AddScoped<UserService>();
 builder.Services.AddScoped<BranchService>();
 builder.Services.AddScoped<LocationService>();
+builder.Services.AddScoped<ActivityFilterValidationService>();
 builder.Services.AddScoped<AreaService>();
 builder.Services.AddScoped<TagService>();
 builder.Services.AddScoped<ProfessionService>();
