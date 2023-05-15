@@ -1,4 +1,5 @@
-﻿using ActiverWebAPI.Models.DTO;
+﻿using ActiverWebAPI.Exceptions;
+using ActiverWebAPI.Models.DTO;
 using ActiverWebAPI.Services.TagServices;
 using AutoMapper;
 using Microsoft.AspNetCore.Authorization;
@@ -23,8 +24,27 @@ public class TagController : BaseController
     [HttpGet]
     public IEnumerable<TagDTO> GetAllTags()
     {
-        var tags = _tagService.GetAll();
+        var tags = _tagService.GetAll(t => t.UserVoteTagInActivity, t => t.Activities);
         var tagsDTO = _mapper.Map<IEnumerable<TagDTO>>(tags);
         return tagsDTO;
+    }
+
+    [AllowAnonymous]
+    [HttpGet("{id}")]
+    public async Task<TagDTO> GetTag(int id)
+    {
+        var tag = await _tagService.GetByIdAsync(id, t => t.UserVoteTagInActivity, t => t.Activities);
+        if(tag == null)
+        {
+            throw new TagNotFoundException(id);
+        }
+        var tagDTO = _mapper.Map<TagDTO>(tag);
+
+        // 增加 tag Trend
+        _tagService.AddTagTrendCount(tag);
+        _tagService.Update(tag);
+        await _tagService.SaveChangesAsync();
+
+        return tagDTO;
     }
 }

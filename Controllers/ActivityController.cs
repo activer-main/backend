@@ -470,7 +470,7 @@ public class ActivityController : BaseController
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<ActivityFilterDTO> GetActivityFilterValue()
     {
-        var tags = _tagService.GetAll();
+        var tags = _tagService.GetAll(t => t.UserVoteTagInActivity, t => t.Activities);
         var tagsDTO = _mapper.Map<IEnumerable<TagDTO>>(tags);
 
         return new ActivityFilterDTO
