@@ -468,7 +468,6 @@ public class ActivityController : BaseController
     [AllowAnonymous]
     [HttpGet("activityFilterValue")]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActivityFilterDTO> GetActivityFilterValue()
     {
         var tags = _tagService.GetAll();
