@@ -52,10 +52,10 @@ public class UserService : GenericService<User, Guid>
         return _configuration["Server:Domain"] + $"/api/user/avatar/{user.Avatar.Id}";
     }
 
-    public async Task<Dictionary<Guid, string>> GetUserActivityStatusAsync(Guid userId)
+    public async Task<Dictionary<Guid, KeyValuePair<string, DateTime>>> GetUserActivityStatusAsync(Guid userId)
     {
         var user = await GetByIdAsync(userId, u => u.ActivityStatus);
-        return user?.ActivityStatus?.ToDictionary(a => a.ActivityId, a => a.Status);
+        return user?.ActivityStatus?.ToDictionary(a => a.ActivityId, a => new KeyValuePair<string, DateTime>(a.Status, a.CreatedAt));
     }
 
     public bool VerifyVerificationCode(User User, string token)

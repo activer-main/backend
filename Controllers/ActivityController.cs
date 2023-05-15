@@ -142,7 +142,8 @@ public class ActivityController : BaseController
                 // 根據使用者更改 Status
                 foreach (var activity in activityDTOList.Where(x => activityStatus.ContainsKey(x.Id)))
                 {
-                    activity.Status = activityStatus[activity.Id];
+                    activity.Status = activityStatus[activity.Id].Key;
+                    activity.AddTime = activityStatus[activity.Id].Value;
                 }
             }
         }
@@ -260,7 +261,7 @@ public class ActivityController : BaseController
             .AsQueryable()
             .Where(x => x != null)
             .Where(a =>
-                segmentRequest.Status.IsNullOrEmpty() || segmentRequest.Status.Contains(activityStatus[a.Id])
+                segmentRequest.Status.IsNullOrEmpty() || segmentRequest.Status.Contains(activityStatus[a.Id].Key)
             );
 
         // 解決 null 的問題
@@ -329,7 +330,8 @@ public class ActivityController : BaseController
         {
             if (activityStatus.ContainsKey(x.Id))
             {
-                x.Status = activityStatus.GetValueOrDefault(x.Id, null);
+                x.Status = activityStatus[x.Id].Key;
+                x.AddTime = activityStatus[x.Id].Value;
             }
         });
 
@@ -384,7 +386,8 @@ public class ActivityController : BaseController
                 // 根據使用者更改 Status
                 foreach (var activity in activityDTOList.Where(x => activityStatus.ContainsKey(x.Id)))
                 {
-                    activity.Status = activityStatus[activity.Id];
+                    activity.Status = activityStatus[activity.Id].Key;
+                    activity.AddTime = activityStatus[activity.Id].Value;
                 }
             }
         }
