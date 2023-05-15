@@ -8,17 +8,13 @@ using Microsoft.Extensions.Configuration;
 using ActiverWebAPI.Enums;
 using ActiverWebAPI.Interfaces.UnitOfWork;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.AspNetCore.Razor.TagHelpers;
 using ActiverWebAPI.Interfaces.Repository;
-using ActiverWebAPI.Services.ActivityServices;
 using ActiverWebAPI.Services.TagServices;
 
 public class MappingProfile : Profile
 {
     private readonly IConfiguration _configuration;
     private readonly IUnitOfWork _unitOfWork;
-    private readonly TagService _tagService;
-    private readonly IRepository<Location, int> _locationRepository;
 
     public MappingProfile()
     {
@@ -97,8 +93,6 @@ public class MappingProfile : Profile
     {
         _configuration = configuration;
         _unitOfWork = unitOfWork;
-        _tagService = tagService;
-        _locationRepository = unitOfWork.Repository<Location, int>();
 
         CreateMap<UserSignUpDTO, User>()
             .ForMember(dest => dest.HashedPassword, opt => opt.MapFrom(src => passwordHasher.HashPassword(src.Password)));
@@ -185,29 +179,8 @@ public class MappingProfile : Profile
         var result = new List<Tag>();
         foreach (var tag in tags)
         {
-            //var existingTag = _tagService.GetLocal().FirstOrDefault(t => t.Text == tag.Text && t.Type == tag.Type);
-            //existingTag ??= _tagService.GetAll(t => t.Text == tag.Text && t.Type == tag.Type).FirstOrDefault();
-            //if (existingTag == null)
-            //{
-            //    var newTag = new Tag
-            //    {
-            //        Text = tag.Text,
-            //        Type = tag.Type
-            //    };
-            //    await _tagService.AddAsync(newTag);
-            //    existingTag = newTag;
-            //}
-            //result.Add(existingTag);
             result.Add(new Tag { Text = tag.Text, Type = tag.Type });
         }
-
-        //for(int i = 1; i < result.Count; i++)
-        //{
-        //    var tag = result[i];
-        //    var tagFind = _tagService.GetLocal().FirstOrDefault(x => x.Type == tag.Type && x.Text == tag.Text);
-        //    if (tagFind != null)
-        //        result[i] = tagFind;
-        //}
 
         return result;
     }
