@@ -66,7 +66,7 @@ public class ActivitySearchResponseDTO : SegmentsResponseBaseDTO<ActivityDTO>
 
 public class ActivitySearchRequestDTO : SegmentsRequestBaseDTO
 {
-    public string? keyword { get; set; }
+    public string? Keyword { get; set; }
     public IEnumerable<string>? Tags { get; set; }
     public string? Date { get; set; }
 }

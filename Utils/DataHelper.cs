@@ -1,4 +1,5 @@
 ﻿using System.Linq.Expressions;
+using System.Reflection;
 
 namespace ActiverWebAPI.Utils;
 
@@ -90,4 +91,19 @@ public static class DataHelper
     {
         return file.ContentType.StartsWith("image/");
     }
+
+    public static IEnumerable<string> AllPropertiesToList<T>()
+    {
+        Type type = typeof(T);
+        PropertyInfo[] properties = type.GetProperties();
+
+        List<string> propertyNames = new List<string>();
+        foreach (var property in properties)
+        {
+            propertyNames.Add(property.Name);
+        }
+
+        return propertyNames.AsEnumerable();
+    }
 }
+

@@ -1,10 +1,14 @@
 ﻿namespace ActiverWebAPI.Models.DTO;
 
-public class TagDTO
+public class TagBaseDTO
 {
     public int Id { get; set; }
     public string Text { get; set; }
     public string Type { get; set; }
+}
+
+public class TagDTO : TagBaseDTO
+{
     public int Trend { get; set; }
     public int TagVoteCount { get; set; }
     public bool UserVoted { get; set; }

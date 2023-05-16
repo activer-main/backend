@@ -493,6 +493,11 @@ public class ActivityController : BaseController
     {
         var activities = _activityService.GetAllActivitiesIncludeAll();
 
+        if (request.Keyword.IsNullOrEmpty() && request.Date.IsNullOrEmpty() && request.Tags.IsNullOrEmpty())
+        {
+            throw new BadRequestException("搜尋參數不得全部為空");
+        }
+
         if (!request.Date.IsNullOrEmpty())
         {
             DateTime requestDate;
@@ -505,9 +510,9 @@ public class ActivityController : BaseController
             }
         }
 
-        if (!request.keyword.IsNullOrEmpty())
+        if (!request.Keyword.IsNullOrEmpty())
         {
-            var keywords = request.keyword.Trim().ToLower().Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+            var keywords = request.Keyword.Trim().ToLower().Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
             foreach (var keyword in keywords)
             {
                 activities = activities.Where(a => EF.Functions.Like(a.Title, $"%{keyword}%") || EF.Functions.Like(a.Content, $"%{keyword}%") || EF.Functions.Like(a.Subtitle, $"%{keyword}%"));
@@ -516,13 +521,13 @@ public class ActivityController : BaseController
 
         var properties = new List<Expression<Func<Activity, object>>>() { };
 
+        var tags = request.Tags?.Select(_tagService.GetTagByText).Where(x => x != null);
+
         // Tag filter
-        if (!request.Tags.IsNullOrEmpty())
+        if (tags != null)
         {
             // 獲取所有 tag Id
-            var tagIds = request.Tags
-                .Select(_tagService.GetTagByText)
-                .Where(x => x != null)
+            var tagIds = tags
                 .Select(t => t.Id)
                 .AsEnumerable();
 
@@ -558,6 +563,21 @@ public class ActivityController : BaseController
         response.SearchData = activityDTOList;
         response.TotalData = totalCount;
         response.TotalPage = totalPage;
+
+        // 保存搜尋紀錄
+        if (User.Identity.IsAuthenticated)
+        {
+            var userId = (Guid?)ViewData["UserId"] ?? Guid.Empty;
+            var user = await _userService.GetByIdAsync(userId);
+            if (user != null)
+            {
+                // 轉換型態
+                var searchHistory = _mapper.Map<SearchHistory>(request);
+                searchHistory.Tags = tags?.ToList();
+                _userService.SaveSearchHistory(user, searchHistory);
+            }
+            await _userService.SaveChangesAsync();
+        }
 
         return response;
     }

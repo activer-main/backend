@@ -129,6 +129,7 @@ public class SearchHistory : BaseEntity, IEntity<int>
     public int Id { get; set; }
     public string? Keyword { get; set; }
     public List<Tag>? Tags { get; set; }
+    public DateTime? Date { get; set; }
 
     [JsonIgnore]
     [Required]

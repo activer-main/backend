@@ -10,6 +10,8 @@ using ActiverWebAPI.Interfaces.UnitOfWork;
 using Microsoft.EntityFrameworkCore;
 using ActiverWebAPI.Services.TagServices;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.AspNetCore.Http;
+using System.Globalization;
 
 public class MappingProfile : Profile
 {
@@ -46,6 +48,11 @@ public class MappingProfile : Profile
             .ForMember(dest => dest.TotalData, opt => opt.Ignore())
             .ForMember(dest => dest.SearchData, opt => opt.Ignore());
 
+        CreateMap<SegmentsRequestBaseDTO, SegmentsResponseBaseDTO<SearchHistoryDTO>>()
+            .ForMember(dest => dest.TotalPage, opt => opt.Ignore())
+            .ForMember(dest => dest.TotalData, opt => opt.Ignore())
+            .ForMember(dest => dest.SearchData, opt => opt.Ignore());
+
         CreateMap<SegmentsRequestDTO, SegmentsResponseDTO<ActivityDTO>>()
             .ForMember(dest => dest.TotalPage, opt => opt.Ignore())
             .ForMember(dest => dest.TotalData, opt => opt.Ignore())
@@ -56,19 +63,28 @@ public class MappingProfile : Profile
             .ForMember(dest => dest.TotalData, opt => opt.Ignore())
             .ForMember(dest => dest.SearchData, opt => opt.Ignore());
 
-        CreateMap<ActivitySearchRequestDTO, ActivitySearchResponseDTO>()
-            ;
+        CreateMap<ActivitySearchRequestDTO, ActivitySearchResponseDTO>();
 
         CreateMap<Profession, UserProfessionDTO>()
             .ForMember(dest => dest.Profession, opt => opt.MapFrom(src => src.Content))
             .ForMember(dest => dest.Id, opt => opt.MapFrom(src => src.Id));
 
+        CreateMap<ActivitySearchRequestDTO, SearchHistory>()
+            .ForMember(dest => dest.Keyword, opt => opt.MapFrom(src => src.Keyword))
+            .ForMember(dest => dest.Date, opt => opt.MapFrom(src => src.Date != null ? DateTime.ParseExact(src.Date, "yyyy-MM-dd", CultureInfo.InvariantCulture) : (DateTime?) null))
+            .ForMember(dest => dest.Tags, opt => opt.Ignore());
+
+        CreateMap<SearchHistory, SearchHistoryDTO>();
+
+        CreateMap<Tag, TagBaseDTO>();
         CreateMap<County, CountyDTO>();
         CreateMap<Area, AreaDTO>();
         CreateMap<CountyUpdateDTO, County>();
         CreateMap<AreaUpdateDTO, Area>();
         CreateMap<CountyPostDTO, County>();
         CreateMap<AreaPostDTO, Area>();
+
+
 
         CreateMap<TagPostDTO, Tag>();
        

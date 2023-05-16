@@ -10,8 +10,10 @@ using ActiverWebAPI.Utils;
 using AutoMapper;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Identity.Client;
 using Microsoft.IdentityModel.Tokens;
 using System.Globalization;
+using System.Linq.Expressions;
 
 namespace ActiverWebAPI.Controllers;
 
@@ -623,5 +625,55 @@ public class UserController : BaseController
         var countyList = await _countyService.GetAllInlcudeAreaAsync();
         var countyDTOList = _mapper.Map<List<CountyDTO>>(countyList);
         return countyDTOList;
+    }
+
+    [Authorize]
+    [HttpGet("search/history")]
+    public async Task<ActionResult<SegmentsResponseBaseDTO<SearchHistoryDTO>>> GetSearchHistory([FromQuery] SegmentsRequestBaseDTO request)
+    {
+        var userId = (Guid?)ViewData["UserId"] ?? Guid.Empty;
+        var searchHistory = await _userService.GetSearchHistory(userId);
+
+        // 計算總頁數
+        var totalCount = searchHistory.Count();
+        var totalPage = totalCount / request.CountPerPage + (totalCount % request.CountPerPage > 0 ? 1 : 0);
+
+        // 檢查 請求頁數 < 總頁數
+        if (request.Page > totalPage)
+        {
+            throw new BadRequestException($"請求的頁數({request.Page})大於總頁數({totalPage})");
+        }
+
+        // 初始化 SortBy 列表
+        var properties = new List<Expression<Func<SearchHistory, object>>>() { };
+        request.OrderBy ??= "Descending";
+        var sortBy = "CreatedAt";
+
+        // 加入 sortBy 列表
+        switch (sortBy)
+        {
+            case "AddTime":
+                properties.Add(a => a.CreatedAt);
+                break;
+            default:
+                var parameter = Expression.Parameter(typeof(SearchHistory), "a");
+                var property = Expression.Property(parameter, sortBy);
+                var cast = Expression.Convert(property, typeof(object));
+                var lambda = Expression.Lambda<Func<SearchHistory, object>>(cast, parameter);
+                properties.Add(lambda);
+                break;
+        }
+
+        var orderedSearchHistoryList = DataHelper.GetSortedAndPagedData(searchHistory.AsQueryable(), properties, request.OrderBy, request.Page, request.CountPerPage);
+
+        var searchHistoryDTOList = _mapper.Map<IEnumerable<SearchHistoryDTO>>(orderedSearchHistoryList);
+
+        // 轉換型態
+        var response = _mapper.Map<SegmentsResponseBaseDTO<SearchHistoryDTO>>(request);
+        response.SearchData = searchHistoryDTOList;
+        response.TotalData = totalCount;
+        response.TotalPage = totalPage;
+
+        return response;
     }
 }

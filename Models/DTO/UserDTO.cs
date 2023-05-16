@@ -1,4 +1,6 @@
-﻿namespace ActiverWebAPI.Models.DTO;
+﻿using ActiverWebAPI.Models.DBEntity;
+
+namespace ActiverWebAPI.Models.DTO;
 
 public class UserInfoDTO
 {
@@ -102,4 +104,11 @@ public class AreaUpdateDTO
     public string ZipCode { get; set; }
     public string AreaName { get; set; }
     public string AreaEngName { get; set; }
+}
+
+public class SearchHistoryDTO
+{
+    public string? Keyword { get; set; }
+    public IEnumerable<TagBaseDTO>? Tags { get; set; }
+    public DateTime? Date { get; set; }
 }

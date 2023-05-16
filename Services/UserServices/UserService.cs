@@ -1,7 +1,10 @@
-﻿using ActiverWebAPI.Interfaces.Repository;
+﻿using ActiverWebAPI.Exceptions;
+using ActiverWebAPI.Interfaces.Repository;
 using ActiverWebAPI.Interfaces.UnitOfWork;
 using ActiverWebAPI.Models.DBEntity;
+using ActiverWebAPI.Models.DTO;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Identity.Client;
 using System.Linq.Expressions;
 
 namespace ActiverWebAPI.Services.UserServices;
@@ -52,6 +55,19 @@ public class UserService : GenericService<User, Guid>
         return _configuration["Server:Domain"] + $"/api/user/avatar/{user.Avatar.Id}";
     }
 
+    public async Task<IEnumerable<SearchHistory>>? GetSearchHistory(Guid userId)
+    {
+        var query = _userRepository.Query()
+            .Include(x => x.SearchHistory)
+            .ThenInclude(x => x.Tags);
+        var user = await query.FirstOrDefaultAsync(e => e.Id == userId);
+        if (user == null)
+        {
+            throw new UserNotFoundException();
+        }
+        return user.SearchHistory;
+    }
+
     public void CheckUserPassword(string password)
     {
         // 加入 password 的規範
@@ -61,6 +77,13 @@ public class UserService : GenericService<User, Guid>
     {
         var user = await GetByIdAsync(userId, u => u.ActivityStatus);
         return user?.ActivityStatus?.ToDictionary(a => a.ActivityId, a => new KeyValuePair<string, DateTime>(a.Status, a.CreatedAt));
+    }
+
+    public void SaveSearchHistory(User user, SearchHistory searchHistory)
+    {
+        user.SearchHistory ??= new List<SearchHistory>() { };
+        user.SearchHistory.Add(searchHistory);
+        Update(user);
     }
 
     public bool VerifyEmailVerificationCode(User User, string token)
