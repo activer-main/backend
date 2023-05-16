@@ -27,7 +27,7 @@ public class UserController : BaseController
     private readonly CountyService _countyService;
     private readonly IMapper _mapper;
     private readonly IWebHostEnvironment _env;
-
+    private readonly IConfiguration _configuration;
     public UserController(UserService userService,
         IMapper mapper,
         IWebHostEnvironment env,
@@ -35,7 +35,8 @@ public class UserController : BaseController
         IPasswordHasher passwordHasher,
         IEmailService emailService,
         ProfessionService professionService,
-        CountyService countyService)
+        CountyService countyService,
+        IConfiguration configuration)
     {
         _userService = userService;
         _mapper = mapper;
@@ -45,6 +46,7 @@ public class UserController : BaseController
         _emailService = emailService;
         _professionService = professionService;
         _countyService = countyService;
+        _configuration = configuration;
     }
 
     [AllowAnonymous]
@@ -268,14 +270,18 @@ public class UserController : BaseController
             throw new BadRequestException("此電子郵件已被註冊");
         }
 
+        // 檢查 Password 是否符合規範
+        _userService.CheckUserPassword(signUpDTO.Password);
+
         var user = _mapper.Map<User>(signUpDTO);
         await _userService.AddAsync(user);
-        await _userService.SaveChangesAsync();
 
         // 發送驗證電子郵件
         var token = await _userService.GenerateEmailConfirmationTokenAsync(user);
         var subject = "[noreply] Activer 註冊驗證碼";
         var message = $"<h1>您的驗證碼是: {token} ，此驗證碼於10分鐘後失效</h1>";
+
+        await _userService.SaveChangesAsync();
         await _emailService.SendEmailAsync(user.Email, subject, message);
 
         var userInfoDTO = _mapper.Map<UserInfoDTO>(user);
@@ -508,7 +514,7 @@ public class UserController : BaseController
             throw new UserNotFoundException();
         }
 
-        var result = _userService.VerifyVerificationCode(user, verifyCode);
+        var result = _userService.VerifyEmailVerificationCode(user, verifyCode);
         if (!result)
         {
             throw new BadRequestException("驗證碼不正確或已失效");
@@ -545,7 +551,57 @@ public class UserController : BaseController
         var token = await _userService.GenerateEmailConfirmationTokenAsync(user);
         var subject = "[noreply] Activer 註冊驗證碼";
         var message = $"<h1>您的驗證碼是: {token} ，此驗證碼於10分鐘後失效</h1>";
+
+        await _userService.SaveChangesAsync();
         await _emailService.SendEmailAsync(user.Email, subject, message);
+        return Ok();
+    }
+
+    // 注意 Timing Attack
+    [AllowAnonymous]
+    [HttpGet("resetPassword")]
+    [ProducesResponseType(StatusCodes.Status202Accepted)]
+    public async Task<ActionResult> ResetUserPassword([FromQuery] string email)
+    {
+        var user = await _userService.GetUserByEmailAsync(email);
+        if (user == null)
+            return Accepted();
+
+        // 發送驗證電子郵件
+        var token = await _userService.GenerateResetTokenAsync(user);
+        var subject = "[noreply] Activer 重設密碼鏈接";
+        var domain = _configuration["Host:Domain"];
+        var subURL = _configuration["Host:ResetPasswordURL"];
+        var message = $"<h1>請點擊以下的鏈接以重設密碼: <a href=\"{domain}{subURL}?token={token}&email={email}\">{domain}{subURL}?token={token}&email={email}</a>，此鏈結於10分鐘後失效</h1>";
+
+        await _userService.SaveChangesAsync();
+        await _emailService.SendEmailAsync(email, subject, message);
+        return Accepted();
+    }
+
+    [AllowAnonymous]
+    [HttpGet("verifyResetPassword")]
+    public async Task<ActionResult> VerifyAndChangeUserPassword([FromQuery] string email, string token, string password)
+    {
+        // 檢查 Password 是否符合規範
+        _userService.CheckUserPassword(password);
+
+        var user = await _userService.GetUserByEmailAsync(email, user => user.ResetPasswordTokens);
+        if(user == null)
+        {
+            throw new UnauthorizedException("驗證失敗");
+        }
+
+        var result = _userService.VerifyResetPasswordVerificationCodeAvailable(user, token);
+        if (!result)
+        {
+            throw new UnauthorizedException("驗證失敗");
+        }
+
+        user.HashedPassword = _passwordHasher.HashPassword(password);
+        _userService.Update(user);
+        await _userService.SaveChangesAsync();
+
         return Ok();
     }
 

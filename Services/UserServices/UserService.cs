@@ -52,17 +52,45 @@ public class UserService : GenericService<User, Guid>
         return _configuration["Server:Domain"] + $"/api/user/avatar/{user.Avatar.Id}";
     }
 
+    public void CheckUserPassword(string password)
+    {
+        // 加入 password 的規範
+    }
+
     public async Task<Dictionary<Guid, KeyValuePair<string, DateTime>>> GetUserActivityStatusAsync(Guid userId)
     {
         var user = await GetByIdAsync(userId, u => u.ActivityStatus);
         return user?.ActivityStatus?.ToDictionary(a => a.ActivityId, a => new KeyValuePair<string, DateTime>(a.Status, a.CreatedAt));
     }
 
-    public bool VerifyVerificationCode(User User, string token)
+    public bool VerifyEmailVerificationCode(User User, string token)
     {
         if (User.UserEmailVerifications == null)
             return false;
-        return User.UserEmailVerifications.Any(e => e.VerificationCode == token && e.ExpiresTime > DateTime.UtcNow);
+        var result = User.UserEmailVerifications.Any(e => e.VerificationCode == token && e.ExpiresTime > DateTime.UtcNow);
+
+        // 刪除驗證碼
+        if (result)
+        {
+            User.UserEmailVerifications.RemoveAll(e => e.VerificationCode == token || e.ExpiresTime > DateTime.UtcNow);
+        }
+        Update(User);
+        return result;
+    }
+
+    public bool VerifyResetPasswordVerificationCodeAvailable(User User, string token)
+    {
+        if (User.ResetPasswordTokens == null)
+            return false;
+        var result = User.ResetPasswordTokens.Any(e => e.Token == token && e.ExpiresTime > DateTime.UtcNow);
+
+        // 刪除驗證碼
+        if (result)
+        {
+            User.ResetPasswordTokens.RemoveAll(e => e.Token == token || e.ExpiresTime > DateTime.UtcNow);
+        }
+        Update(User);
+        return result;
     }
 
     public async Task<string> GenerateEmailConfirmationTokenAsync(User user)
@@ -75,7 +103,7 @@ public class UserService : GenericService<User, Guid>
         do
         {
             token = new string(Enumerable.Repeat(chars, length).Select(s => s[random.Next(s.Length)]).ToArray());
-        } while (!IsVerificationCodeAvailable(user, token));
+        } while (!IsEmailVerificationCodeAvailable(user, token));
 
         user.UserEmailVerifications ??= new List<UserEmailVerification>() { };
         user.UserEmailVerifications.Add(new UserEmailVerification
@@ -84,11 +112,39 @@ public class UserService : GenericService<User, Guid>
             ExpiresTime = DateTime.UtcNow.AddMinutes(10),
         });
         Update(user);
-        await SaveChangesAsync();
         return token;
     }
 
-    private static bool IsVerificationCodeAvailable(User User, string token)
+    public async Task<string> GenerateResetTokenAsync(User user)
+    {
+        Random random = new();
+        var length = 6;
+        const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+        string token;
+
+        do
+        {
+            token = new string(Enumerable.Repeat(chars, length).Select(s => s[random.Next(s.Length)]).ToArray());
+        } while (!IsResetPasswordVerificationCodeAvailable(user, token));
+
+        user.ResetPasswordTokens ??= new List<UserResetPasswordToken>() { };
+        user.ResetPasswordTokens.Add(new UserResetPasswordToken
+        {
+            Token = token,
+            ExpiresTime = DateTime.UtcNow.AddMinutes(10),
+        });
+        Update(user);
+        return token;
+    }
+
+    private static bool IsResetPasswordVerificationCodeAvailable(User User, string token)
+    {
+        if (User.ResetPasswordTokens == null)
+            return true;
+        return !User.ResetPasswordTokens.Any(e => e.Token == token);
+    }
+
+    private static bool IsEmailVerificationCodeAvailable(User User, string token)
     {
         if (User.UserEmailVerifications == null)
             return true;
