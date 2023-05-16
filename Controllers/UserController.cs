@@ -636,7 +636,7 @@ public class UserController : BaseController
 
         // 計算總頁數
         var totalCount = searchHistory.Count();
-        var totalPage = totalCount / request.CountPerPage + (totalCount % request.CountPerPage > 0 ? 1 : 0);
+        var totalPage = totalCount / request.CountPerPage + 1;
 
         // 檢查 請求頁數 < 總頁數
         if (request.Page > totalPage)
