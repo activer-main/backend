@@ -501,7 +501,8 @@ public class ActivityController : BaseController
         if (!request.Date.IsNullOrEmpty())
         {
             DateTime requestDate;
-            if (DateTime.TryParseExact(request.Date, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out requestDate)) { 
+            if (DateTime.TryParseExact(request.Date, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out requestDate))
+            {
                 activities.Where(a => a.CreatedAt.Date == requestDate.Date);
             }
             else
@@ -530,6 +531,14 @@ public class ActivityController : BaseController
             var tagIds = tags
                 .Select(t => t.Id)
                 .AsEnumerable();
+
+            // 增加 Tag Trend
+            foreach (var tag in tags)
+            {
+                _tagService.AddTagTrendCount(tag);
+                _tagService.Update(tag);
+            }
+            await _tagService.SaveChangesAsync();
 
             // Tag Filter (至少要有一個 tag 符合)
             if (tagIds != null)
@@ -583,4 +592,3 @@ public class ActivityController : BaseController
     }
 }
 
- 
