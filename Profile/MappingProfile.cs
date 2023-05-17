@@ -81,9 +81,6 @@ public class MappingProfile : Profile
         CreateMap<Area, AreaDTO>();
         CreateMap<CountyPostDTO, County>();
         CreateMap<AreaPostDTO, Area>();
-
-
-
         CreateMap<TagPostDTO, Tag>();
 
     }
@@ -102,9 +99,9 @@ public class MappingProfile : Profile
             .ForMember(dest => dest.HashedPassword, opt => opt.MapFrom(src => passwordHasher.HashPassword(src.Password)));
         CreateMap<User, UserInfoDTO>()
             .ForMember(dest => dest.Avatar, opt => opt.MapFrom(src => src.Avatar == null ? null : _configuration["Server:Domain"] + $"api/user/avatar/{src.Id}"))
-            .ForMember(dest => dest.Area, opt => opt.MapFrom(src => src.Area ?? null))
+            .ForMember(dest => dest.Area, opt => opt.MapFrom(src => src.Area == null ? null : src.Area.AreaName))
             .ForMember(dest => dest.Professions, opt => opt.MapFrom(src => src.Professions == null ? null : src.Professions.Select(x => new UserProfessionDTO { Id = x.Id, Profession = x.Content }).ToList()))
-            .ForMember(dest => dest.County, opt => opt.MapFrom(src => src.County ?? null))
+            .ForMember(dest => dest.County, opt => opt.MapFrom(src => src.County == null ? null : src.County.CityName))
             .ForMember(dest => dest.EmailVerified, opt => opt.MapFrom(src => src.Verified))
             .ForMember(dest => dest.Gender, opt => opt.MapFrom(src => ((UserGender)src.Gender).ToString()))
             .ForMember(dest => dest.Birthday, opt => opt.MapFrom(src => src.Birthday == null ? null : src.Birthday.Value.ToString("yyyy-mm-dd")));
