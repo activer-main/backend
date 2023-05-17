@@ -71,7 +71,7 @@ public class MappingProfile : Profile
 
         CreateMap<ActivitySearchRequestDTO, SearchHistory>()
             .ForMember(dest => dest.Keyword, opt => opt.MapFrom(src => src.Keyword))
-            .ForMember(dest => dest.Date, opt => opt.MapFrom(src => src.Date != null ? DateTime.ParseExact(src.Date, "yyyy-MM-dd", CultureInfo.InvariantCulture) : (DateTime?) null))
+            .ForMember(dest => dest.Date, opt => opt.MapFrom(src => src.Date != null ? DateTime.ParseExact(src.Date, "yyyy-MM-dd", CultureInfo.InvariantCulture) : (DateTime?)null))
             .ForMember(dest => dest.Tags, opt => opt.Ignore());
 
         CreateMap<SearchHistory, SearchHistoryDTO>();
@@ -79,15 +79,13 @@ public class MappingProfile : Profile
         CreateMap<Tag, TagBaseDTO>();
         CreateMap<County, CountyDTO>();
         CreateMap<Area, AreaDTO>();
-        CreateMap<CountyUpdateDTO, County>();
-        CreateMap<AreaUpdateDTO, Area>();
         CreateMap<CountyPostDTO, County>();
         CreateMap<AreaPostDTO, Area>();
 
 
 
         CreateMap<TagPostDTO, Tag>();
-       
+
     }
 
     public MappingProfile(
@@ -211,7 +209,7 @@ public class MappingProfile : Profile
         if (userVotesTagInActivity.IsNullOrEmpty())
             return 0;
 
-        return userVotesTagInActivity.Aggregate(0, (acc, x) =>acc + x.Vote);
+        return userVotesTagInActivity.Aggregate(0, (acc, x) => acc + x.Vote);
     }
 }
 
