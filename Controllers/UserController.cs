@@ -197,21 +197,33 @@ public class UserController : BaseController
         user.Phone = patchDoc.Phone;
 
         // 更新地區
-        var countyName = patchDoc.County;
-        var areaName = patchDoc.Area;
-        var county = await _countyService.GetByNameAsync(countyName);
-        if (county == null)
+        if (patchDoc.County.IsNullOrEmpty())
         {
-            throw new BadRequestException($"縣市: {countyName} 不在選項中");
+            user.County = null;
+            user.Area = null;
         }
-        county.Areas ??= new List<Area>() { };
-        var area = county.Areas.FirstOrDefault(x => x.AreaName == areaName);
-        if (area == null)
+        else
         {
-            throw new BadRequestException($"區域: {countyName} 不在 縣市: {countyName} 中");
+            if (patchDoc.Area.IsNullOrEmpty())
+            {
+                throw new BadRequestException("County 不為空時, Area 不得為空");
+            }
+            var countyName = patchDoc.County;
+            var areaName = patchDoc.Area;
+            var county = await _countyService.GetByNameAsync(countyName);
+            if (county == null)
+            {
+                throw new BadRequestException($"縣市: {countyName} 不在選項中");
+            }
+            county.Areas ??= new List<Area>() { };
+            var area = county.Areas.FirstOrDefault(x => x.AreaName == areaName);
+            if (area == null)
+            {
+                throw new BadRequestException($"區域: {countyName} 不在 縣市: {countyName} 中");
+            }
+            user.County = county;
+            user.Area = area;
         }
-        user.County = county;
-        user.Area = area;
 
         // 儲存更改
         _userService.Update(user);
