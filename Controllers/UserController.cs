@@ -92,8 +92,8 @@ public class UserController : BaseController
         var userId = (Guid?)ViewData["UserId"] ?? Guid.Empty;
         var user = await _userService.GetByIdAsync(userId,
             user => user.Avatar,
-            user => user.Area,
             user => user.County,
+            user => user.Area,
             user => user.Professions,
             user => user.SearchHistory,
             user => user.TagStorage,
