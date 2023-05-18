@@ -93,6 +93,7 @@ public class UserController : BaseController
         var user = await _userService.GetByIdAsync(userId,
             user => user.Avatar,
             user => user.Area,
+            user => user.County,
             user => user.Professions,
             user => user.SearchHistory,
             user => user.TagStorage,
