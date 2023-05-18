@@ -130,7 +130,9 @@ public class UserController : BaseController
 
         var user = await _userService.GetByIdAsync(userId,
             u => u.County,
-            u => u.Area
+            u => u.Area,
+            u => u.Avatar,
+            u => u.Professions
             );
         if (user == null)
         {
@@ -219,7 +221,7 @@ public class UserController : BaseController
             var area = county.Areas.FirstOrDefault(x => x.AreaName == areaName);
             if (area == null)
             {
-                throw new BadRequestException($"區域: {countyName} 不在 縣市: {countyName} 中");
+                throw new BadRequestException($"區域: {areaName} 不在 縣市: {countyName} 中");
             }
             user.County = county;
             user.Area = area;
