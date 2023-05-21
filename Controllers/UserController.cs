@@ -92,6 +92,7 @@ public class UserController : BaseController
         var userId = (Guid?)ViewData["UserId"] ?? Guid.Empty;
         var user = await _userService.GetByIdAsync(userId,
             user => user.Avatar,
+            user => user.County,
             user => user.Area,
             user => user.Professions,
             user => user.SearchHistory,
@@ -128,9 +129,11 @@ public class UserController : BaseController
     {
         var userId = (Guid?)ViewData["UserId"] ?? Guid.Empty;
 
-        var user = await _userService.GetByIdAsync(userId, 
+        var user = await _userService.GetByIdAsync(userId,
+            u => u.Avatar,
             u => u.County,
-            u => u.Area
+            u => u.Area,
+            u => u.Professions
             );
         if (user == null)
         {
@@ -138,13 +141,14 @@ public class UserController : BaseController
         }
 
         // 更新 Username
-        if (!string.IsNullOrEmpty(patchDoc.Username))
-        {
-            user.Username = patchDoc.Username;
-        }
+        user.Username = patchDoc.Username;
 
         // 更新性別
-        if (!string.IsNullOrEmpty(patchDoc.Gender))
+        if (patchDoc.Gender == null)
+        {
+            user.Gender = (int)Enums.UserGender.Undefined;
+        }
+        else
         {
             if (!Enum.TryParse(patchDoc.Gender, true, out UserGender gender))
             {
@@ -154,20 +158,27 @@ public class UserController : BaseController
         }
 
         // 更新生日
-        if (patchDoc.Birthday != null)
+        DateTime newBirthday;
+        var parseSuccess = DateTime.TryParseExact(patchDoc.Birthday, "yyyy-mm-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out newBirthday);
+        if (!parseSuccess)
         {
-            user.Birthday = DateTime.ParseExact(patchDoc.Birthday, "yyyy-mm-dd", CultureInfo.InvariantCulture);
+            user.Birthday = null;
+        }
+        else
+        {
+            user.Birthday = newBirthday;
         }
 
         // 更新職業
-        if (!patchDoc.Professions.IsNullOrEmpty())
+        if (patchDoc.Professions != null)
         {
             var professionList = patchDoc.Professions.Where(s => !string.IsNullOrWhiteSpace(s)).ToList();
-            List<Profession> newProfessions = new ();
-            foreach(var professionName in professionList)
+            List<Profession> newProfessions = new();
+            foreach (var professionName in professionList)
             {
                 var profession = await _professionService.GetByNameAsync(professionName);
-                if (profession != null) {
+                if (profession != null)
+                {
                     newProfessions.Add(profession);
                 }
                 else
@@ -180,18 +191,28 @@ public class UserController : BaseController
             }
             user.Professions = newProfessions;
         }
-
-        // 更新手機
-        if (!string.IsNullOrEmpty(patchDoc.Phone))
+        else
         {
-            user.Phone = patchDoc.Phone;
+            user.Professions = new List<Profession>() { };
         }
 
+        // 更新手機
+        user.Phone = patchDoc.Phone;
+
         // 更新地區
-        if (patchDoc.County != null)
+        if (patchDoc.County.IsNullOrEmpty())
         {
-            var countyName = patchDoc.County.CityName;
-            var areaName = patchDoc.County.Area.AreaName;
+            user.County = null;
+            user.Area = null;
+        }
+        else
+        {
+            if (patchDoc.Area.IsNullOrEmpty())
+            {
+                throw new BadRequestException("County 不為空時, Area 不得為空");
+            }
+            var countyName = patchDoc.County;
+            var areaName = patchDoc.Area;
             var county = await _countyService.GetByNameAsync(countyName);
             if (county == null)
             {
@@ -201,12 +222,13 @@ public class UserController : BaseController
             var area = county.Areas.FirstOrDefault(x => x.AreaName == areaName);
             if (area == null)
             {
-                throw new BadRequestException($"區域: {countyName} 不在 縣市: {countyName} 中");
+                throw new BadRequestException($"區域: {areaName} 不在 縣市: {countyName} 中");
             }
             user.County = county;
             user.Area = area;
-        }   
+        }
 
+        // 儲存更改
         _userService.Update(user);
         await _userService.SaveChangesAsync();
         var userInfoDTO = _mapper.Map<UserInfoDTO>(user);
@@ -346,7 +368,7 @@ public class UserController : BaseController
                 System.IO.File.Delete(filePathToDelete);
             }
         }
-        
+
         // 產生檔名
         var fileName = $"{Guid.NewGuid()}{Path.GetExtension(file.FileName)}";
 
@@ -509,7 +531,7 @@ public class UserController : BaseController
         }
 
         // 驗證電子郵件驗證碼
-        var user = await _userService.GetByIdAsync(userId, 
+        var user = await _userService.GetByIdAsync(userId,
             user => user.UserEmailVerifications);
         if (user == null)
         {
@@ -589,7 +611,7 @@ public class UserController : BaseController
         _userService.CheckUserPassword(password);
 
         var user = await _userService.GetUserByEmailAsync(email, user => user.ResetPasswordTokens);
-        if(user == null)
+        if (user == null)
         {
             throw new UnauthorizedException("驗證失敗");
         }
