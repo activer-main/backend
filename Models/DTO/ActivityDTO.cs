@@ -60,7 +60,7 @@ public class ActivityFilterDTO
 public class ActivitySearchResponseDTO : SegmentsResponseBaseDTO<ActivityDTO>
 {
     public string? Keyword { get; set; }
-    public IEnumerable<string>? Tags { get; set; }
+    public IEnumerable<TagBaseDTO>? Tags { get; set; }
     public string? Date { get; set; }
 }
 

@@ -603,6 +603,8 @@ public class ActivityController : BaseController
 
         // 轉換型態
         var response = _mapper.Map<ActivitySearchResponseDTO>(request);
+        var tagBaseDTOs = _mapper.Map<IEnumerable<TagBaseDTO>>(tags);
+        response.Tags = tagBaseDTOs;
         response.SearchData = activityDTOList;
         response.TotalData = totalCount;
         response.TotalPage = totalPage;
