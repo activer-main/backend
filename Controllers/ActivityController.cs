@@ -339,6 +339,44 @@ public class ActivityController : BaseController
         return Ok(SegmentResponse);
     }
 
+    [Authorize]
+    [HttpGet("manageFilterValue")]
+    [Produces("application/json")]
+    public async Task<ActionResult<ActivityFilterDTO>> GetManagedActivityFilterValue()
+    {
+        // 獲得使用者資訊
+        var userId = (Guid?)ViewData["UserId"] ?? Guid.Empty;
+        var user = await _userService.GetByIdAsync(userId,
+            u => u.ActivityStatus
+        );
+
+        if (user == null)
+        {
+            throw new UserNotFoundException();
+        }
+
+        // 找出每個 activity 的 status
+        var activityStatus = await _userService.GetUserActivityStatusAsync(user.Id);
+
+        // 找出所有活動 並 filter status 
+        var tagIds = activityStatus.Keys.Select(id => _activityService.GetById(id, a => a.Tags))
+            .AsQueryable()
+            .Where(x => x != null)
+            .SelectMany(a => a.Tags)
+            .Distinct()
+            .Select(t => t.Id);
+
+        var tags = _tagService.GetAll(t => t.UserVoteTagInActivity, t => t.Activities).Where(t => tagIds.Contains(t.Id));
+        var tagsDTO = _mapper.Map<IEnumerable<TagDTO>>(tags);
+
+        return new ActivityFilterDTO
+        {
+            Status = _activityFilterValidationService.GetAllowStatusSet(),
+            Tags = tagsDTO
+        };
+    }
+
+
     /// <summary>
     /// 取得熱門活動清單
     /// </summary>
@@ -409,11 +447,7 @@ public class ActivityController : BaseController
         var userId = (Guid?)ViewData["UserId"] ?? Guid.Empty;
         var user = await _userService.GetByIdAsync(userId, u => u.ActivityStatus);
 
-        var statusList = new List<string> { "願望", "已註冊", "已完成" };
-        if (!statusList.Contains(status))
-        {
-            throw new BadRequestException($"活動狀態: {status} 不在可接受的狀態列表: \"{string.Join(", ", statusList)}\"");
-        }
+        _activityFilterValidationService.ValidateStatus(status);
 
         // 確認 User 存在
         if (user == null)
