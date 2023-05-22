@@ -12,14 +12,13 @@ using Microsoft.CodeAnalysis;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Globalization;
-using System.Linq;
 using System.Linq.Expressions;
-using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
-using static System.Runtime.InteropServices.JavaScript.JSType;
+using ActiverWebAPI.Services.Filters;
 
 namespace ActiverWebAPI.Controllers;
 
 [ApiController]
+[PasswordChangedAuthorizationFilter]
 [Route("api/[controller]")]
 public class ActivityController : BaseController
 {
