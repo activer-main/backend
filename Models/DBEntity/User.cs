@@ -28,6 +28,8 @@ public class User : BaseEntity, IEntity<Guid>
     [Required]
     public string HashedPassword { get; set; }
 
+    public DateTime? LastPasswordModifiedTime { get; set; }
+
     [Column(TypeName = "varchar(64)")]
     public string? Phone { get; set; }
 
