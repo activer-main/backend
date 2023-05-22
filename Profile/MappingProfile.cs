@@ -63,7 +63,8 @@ public class MappingProfile : Profile
             .ForMember(dest => dest.TotalData, opt => opt.Ignore())
             .ForMember(dest => dest.SearchData, opt => opt.Ignore());
 
-        CreateMap<ActivitySearchRequestDTO, ActivitySearchResponseDTO>();
+        CreateMap<ActivitySearchRequestDTO, ActivitySearchResponseDTO>()
+            .ForMember(dest => dest.Tags, opt => opt.Ignore());
 
         CreateMap<Profession, UserProfessionDTO>()
             .ForMember(dest => dest.Profession, opt => opt.MapFrom(src => src.Content))
