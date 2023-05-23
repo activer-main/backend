@@ -17,6 +17,7 @@ using System.Linq.Expressions;
 namespace ActiverWebAPI.Controllers;
 
 [ApiController]
+[Authorize]
 [Route("api/[controller]")]
 public class ActivityController : BaseController
 {
@@ -215,7 +216,6 @@ public class ActivityController : BaseController
     /// <response code="400">請求參數錯誤</response>
     /// <response code="401">使用者未驗證或無權限</response>
     /// <response code="404">找不到使用者</response>
-    [Authorize]
     [HttpGet("manage")]
     [Produces("application/json")]
     [ProducesResponseType(typeof(SegmentsResponseDTO<ActivityDTO>), 200)]
@@ -393,7 +393,6 @@ public class ActivityController : BaseController
     /// <param name="activityId">活動ID</param>
     /// <param name="status">狀態</param>
     /// <returns>操作結果</returns>
-    [Authorize]
     [HttpPost("activityStatus")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -445,7 +444,6 @@ public class ActivityController : BaseController
         return Ok();
     }
 
-    [Authorize]
     [HttpDelete("activityStatus")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]

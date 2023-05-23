@@ -16,6 +16,7 @@ using System.Globalization;
 namespace ActiverWebAPI.Controllers;
 
 [ApiController]
+[Authorize]
 [Route("api/[controller]")]
 public class UserController : BaseController
 {
@@ -81,7 +82,6 @@ public class UserController : BaseController
     /// 取得當前已登入的使用者資訊
     /// </summary>
     /// <returns>使用者資訊</returns>
-    [Authorize]
     [HttpGet]
     [ProducesResponseType(typeof(UserDTO), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -118,7 +118,6 @@ public class UserController : BaseController
     /// <response code="200">更新成功，回傳更新後的使用者資訊</response>
     /// <response code="400">請求資料無效，回傳錯誤訊息</response>
     /// <response code="401">未授權，回傳錯誤訊息</response>
-    [Authorize]
     [HttpPatch]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -127,7 +126,7 @@ public class UserController : BaseController
     {
         var userId = (Guid?)ViewData["UserId"] ?? Guid.Empty;
 
-        var user = await _userService.GetByIdAsync(userId, 
+        var user = await _userService.GetByIdAsync(userId,
             u => u.County,
             u => u.Area
             );
@@ -162,11 +161,12 @@ public class UserController : BaseController
         if (!patchDoc.Professions.IsNullOrEmpty())
         {
             var professionList = patchDoc.Professions.Where(s => !string.IsNullOrWhiteSpace(s)).ToList();
-            List<Profession> newProfessions = new ();
-            foreach(var professionName in professionList)
+            List<Profession> newProfessions = new();
+            foreach (var professionName in professionList)
             {
                 var profession = await _professionService.GetByNameAsync(professionName);
-                if (profession != null) {
+                if (profession != null)
+                {
                     newProfessions.Add(profession);
                 }
                 else
@@ -204,7 +204,7 @@ public class UserController : BaseController
             }
             user.County = county;
             user.Area = area;
-        }   
+        }
 
         _userService.Update(user);
         await _userService.SaveChangesAsync();
@@ -301,7 +301,6 @@ public class UserController : BaseController
     /// <response code="400">未選擇檔案或不支援此類型檔案</response>
     /// <response code="401">未授權的存取</response>
     /// <response code="404">找不到使用者</response>
-    [Authorize]
     //[TypeFilter(typeof(EmailVerificationActionFilter))]
     [HttpPost("avatar")]
     [ProducesResponseType(StatusCodes.Status200OK)]
@@ -341,7 +340,7 @@ public class UserController : BaseController
                 System.IO.File.Delete(filePathToDelete);
             }
         }
-        
+
         // 產生檔名
         var fileName = $"{Guid.NewGuid()}{Path.GetExtension(file.FileName)}";
 
@@ -382,7 +381,6 @@ public class UserController : BaseController
     /// <response code="200">成功刪除使用者頭像</response>
     /// <response code="401">未授權的請求</response>
     /// <response code="404">找不到指定的使用者</response>
-    [Authorize]
     [TypeFilter(typeof(EmailVerificationActionFilter))]
     [HttpDelete("avatar")]
     [ProducesResponseType(StatusCodes.Status200OK)]
@@ -489,7 +487,6 @@ public class UserController : BaseController
     /// <param name="code">驗證碼</param>
     /// <returns>ActionResult</returns>
     [HttpGet("verifyEmail")]
-    [Authorize]
     [ProducesResponseType(typeof(string), 200)]
     [ProducesResponseType(typeof(string), 400)]
     [ProducesResponseType(typeof(string), 401)]
@@ -504,7 +501,7 @@ public class UserController : BaseController
         }
 
         // 驗證電子郵件驗證碼
-        var user = await _userService.GetByIdAsync(userId, 
+        var user = await _userService.GetByIdAsync(userId,
             user => user.UserEmailVerifications);
         if (user == null)
         {
@@ -529,7 +526,6 @@ public class UserController : BaseController
     /// 需要授權
     /// </remarks>
     /// <returns>發送成功回傳 200，授權失敗回傳 401</returns>
-    [Authorize]
     [HttpGet("resendVerifyEmail")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
