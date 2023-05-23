@@ -58,7 +58,10 @@ public class User : BaseEntity, IEntity<Guid>
     public List<ActivityStatus>? ActivityStatus { get; set; } = new List<ActivityStatus> { };
     
     public List<UserActivityRecord>? UserActivityRecords { get; set; } = new List<UserActivityRecord> { };
+
     public List<UserEmailVerification>? UserEmailVerifications { get; set; } = new List<UserEmailVerification>();
+
+    public List<UserResetPasswordToken>? ResetPasswordTokens { get; set; } = new List<UserResetPasswordToken>();
 }
 
 public class Avatar : BaseEntity, IEntity<int>
@@ -126,6 +129,7 @@ public class SearchHistory : BaseEntity, IEntity<int>
     public int Id { get; set; }
     public string? Keyword { get; set; }
     public List<Tag>? Tags { get; set; }
+    public DateTime? Date { get; set; }
 
     [JsonIgnore]
     [Required]
@@ -223,5 +227,16 @@ public class UserEmailVerification
 
     [Column(TypeName = "char(6)")]
     public string VerificationCode { get; set; }
+    public DateTime ExpiresTime { get; set; }
+}
+
+public class UserResetPasswordToken
+{
+    [Key]
+    [Column(TypeName = "char(6)")]
+    public string Token { get; set; }
+
+    [Required]
+    public Guid UserId { get; set; }
     public DateTime ExpiresTime { get; set; }
 }

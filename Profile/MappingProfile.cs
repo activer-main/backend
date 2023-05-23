@@ -9,6 +9,9 @@ using ActiverWebAPI.Enums;
 using ActiverWebAPI.Interfaces.UnitOfWork;
 using Microsoft.EntityFrameworkCore;
 using ActiverWebAPI.Services.TagServices;
+using Microsoft.IdentityModel.Tokens;
+using Microsoft.AspNetCore.Http;
+using System.Globalization;
 
 public class MappingProfile : Profile
 {
@@ -21,6 +24,10 @@ public class MappingProfile : Profile
             .ForMember(dest => dest.User, opt => opt.MapFrom(src => src));
         CreateMap<TokenDTO, UserDTO>()
             .ForMember(dest => dest.Token, opt => opt.MapFrom(src => src));
+        CreateMap<Tag, TagDTO>()
+           .ForMember(dest => dest.Trend, opt => opt.MapFrom(src => src.TagClickCount))
+           .ForMember(dest => dest.ActivityAmount, opt => opt.MapFrom(src => src.Activities == null ? 0 : src.Activities.Count))
+           .ForMember(dest => dest.TagVoteCount, opt => opt.MapFrom(src => CountTagVoteCount(src.UserVoteTagInActivity)));
         CreateMap<Activity, ActivityDTO>()
             .ForMember(dest => dest.Trend, opt => opt.MapFrom(src => src.ActivityClickedCount))
             .ForMember(dest => dest.Images, opt => opt.MapFrom(src => src.Images == null ? null : src.Images.Select(x => x.ImageURL)))
@@ -30,31 +37,18 @@ public class MappingProfile : Profile
             .ForMember(dest => dest.Holders, opt => opt.MapFrom(src => src.Holders == null ? null : src.Holders.Select(x => x.HolderName)))
             .ForMember(dest => dest.Objectives, opt => opt.MapFrom(src => src.Objectives == null ? null : src.Objectives.Select(x => x.ObjectiveName)))
             .ForMember(dest => dest.CreateAt, opt => opt.MapFrom(src => src.CreatedAt))
-            .ForMember(dest => dest.Tags, opt => opt.MapFrom(src => src.Tags == null ? null : src.Tags.Select(x => new TagDTO {
-                Id = x.Id,
-                Text = x.Text,
-                Type = x.Type,
-                Trend = x.TagClickCount,
-                UserVoted = false,
-                ActivityAmount = x.Activities == null ? 0 : x.Activities.Count
-            })))
-            //.ForMember(dest => dest.Tags, opt => opt.MapFrom(src => src.UserVoteTagInActivity == null ? null : src.UserVoteTagInActivity.Select(x => 
-            //            new TagDTO { 
-            //                Text = x.Tag.Text, 
-            //                Type = x.Tag.Type, 
-            //                Trend = x.Tag.TagClickCount,
-            //                UserVoted = false, 
-            //                ActivityAmount = x.Tag.Activities == null ? 0 : x.Tag.Activities.Count 
-            //            }
-            //        ).Distinct()
-            //    )
-            //)
+            .ForMember(dest => dest.Tags, opt => opt.MapFrom(src => src.Tags ?? null))
             .ForMember(dest => dest.Branches, opt => opt.MapFrom(src => src.Branches));
         CreateMap<Branch, BranchDTO>()
             .ForMember(dest => dest.Location, opt => opt.MapFrom(src => src.Location == null ? null : src.Location.Select(x => x.Content)));
         CreateMap<BranchDate, BranchDateDTO>();
 
         CreateMap<SegmentsRequestBaseDTO, SegmentsResponseBaseDTO<ActivityDTO>>()
+            .ForMember(dest => dest.TotalPage, opt => opt.Ignore())
+            .ForMember(dest => dest.TotalData, opt => opt.Ignore())
+            .ForMember(dest => dest.SearchData, opt => opt.Ignore());
+
+        CreateMap<SegmentsRequestBaseDTO, SegmentsResponseBaseDTO<SearchHistoryDTO>>()
             .ForMember(dest => dest.TotalPage, opt => opt.Ignore())
             .ForMember(dest => dest.TotalData, opt => opt.Ignore())
             .ForMember(dest => dest.SearchData, opt => opt.Ignore());
@@ -69,18 +63,27 @@ public class MappingProfile : Profile
             .ForMember(dest => dest.TotalData, opt => opt.Ignore())
             .ForMember(dest => dest.SearchData, opt => opt.Ignore());
 
+        CreateMap<ActivitySearchRequestDTO, ActivitySearchResponseDTO>()
+            .ForMember(dest => dest.Tags, opt => opt.Ignore());
+
         CreateMap<Profession, UserProfessionDTO>()
             .ForMember(dest => dest.Profession, opt => opt.MapFrom(src => src.Content))
             .ForMember(dest => dest.Id, opt => opt.MapFrom(src => src.Id));
 
+        CreateMap<ActivitySearchRequestDTO, SearchHistory>()
+            .ForMember(dest => dest.Keyword, opt => opt.MapFrom(src => src.Keyword))
+            .ForMember(dest => dest.Date, opt => opt.MapFrom(src => src.Date != null ? DateTime.ParseExact(src.Date, "yyyy-MM-dd", CultureInfo.InvariantCulture) : (DateTime?)null))
+            .ForMember(dest => dest.Tags, opt => opt.Ignore());
+
+        CreateMap<SearchHistory, SearchHistoryDTO>();
+
+        CreateMap<Tag, TagBaseDTO>();
         CreateMap<County, CountyDTO>();
         CreateMap<Area, AreaDTO>();
-        CreateMap<CountyUpdateDTO, County>();
-        CreateMap<AreaUpdateDTO, Area>();
         CreateMap<CountyPostDTO, County>();
         CreateMap<AreaPostDTO, Area>();
-
         CreateMap<TagPostDTO, Tag>();
+
     }
 
     public MappingProfile(
@@ -97,9 +100,9 @@ public class MappingProfile : Profile
             .ForMember(dest => dest.HashedPassword, opt => opt.MapFrom(src => passwordHasher.HashPassword(src.Password)));
         CreateMap<User, UserInfoDTO>()
             .ForMember(dest => dest.Avatar, opt => opt.MapFrom(src => src.Avatar == null ? null : _configuration["Server:Domain"] + $"api/user/avatar/{src.Id}"))
-            .ForMember(dest => dest.Area, opt => opt.MapFrom(src => src.Area ?? null))
+            .ForMember(dest => dest.Area, opt => opt.MapFrom(src => src.Area == null ? null : src.Area.AreaName))
             .ForMember(dest => dest.Professions, opt => opt.MapFrom(src => src.Professions == null ? null : src.Professions.Select(x => new UserProfessionDTO { Id = x.Id, Profession = x.Content }).ToList()))
-            .ForMember(dest => dest.County, opt => opt.MapFrom(src => src.County ?? null))
+            .ForMember(dest => dest.County, opt => opt.MapFrom(src => src.County == null ? null : src.County.CityName))
             .ForMember(dest => dest.EmailVerified, opt => opt.MapFrom(src => src.Verified))
             .ForMember(dest => dest.Gender, opt => opt.MapFrom(src => ((UserGender)src.Gender).ToString()))
             .ForMember(dest => dest.Birthday, opt => opt.MapFrom(src => src.Birthday == null ? null : src.Birthday.Value.ToString("yyyy-mm-dd")));
@@ -197,6 +200,14 @@ public class MappingProfile : Profile
         }
 
         return result;
+    }
+
+    private int CountTagVoteCount(IEnumerable<UserVoteTagInActivity> userVotesTagInActivity)
+    {
+        if (userVotesTagInActivity.IsNullOrEmpty())
+            return 0;
+
+        return userVotesTagInActivity.Aggregate(0, (acc, x) => acc + x.Vote);
     }
 }
 

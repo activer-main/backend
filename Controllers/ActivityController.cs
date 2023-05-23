@@ -11,8 +11,11 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.CodeAnalysis;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using System.Globalization;
 using System.Linq;
 using System.Linq.Expressions;
+using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace ActiverWebAPI.Controllers;
 
@@ -66,7 +69,7 @@ public class ActivityController : BaseController
         }
 
         // 獲取所有活動
-        var activities = _activityService.GetAllActivitiesIncludeAll().AsEnumerable();
+        var activities = _activityService.GetAllActivitiesIncludeAll();
 
         // 給 SortBy 與 OrderBy 預設值
         segmentRequest.SortBy ??= "CreateAt";
@@ -87,12 +90,14 @@ public class ActivityController : BaseController
                 .Select(_tagService.GetTagByText)
                 .Where(x => x != null)
                 .Select(t => t.Id)
-                .ToList();
+                .AsEnumerable();
 
             // Tag Filter (至少要有一個 tag 符合)
-            activities = activities
-                .Where(a => !a.Tags.IsNullOrEmpty())
-                .Where(a => tagIds == null || a.Tags.Any(t => tagIds.Contains(t.Id)));
+            if (tagIds != null)
+            {
+                activities = activities
+                    .Where(a => a.Tags.Any(t => tagIds.Contains(t.Id)));
+            }
 
             // 加入 Tag 排序
             properties.Add(a => a.Tags.Count(t => tagIds.Contains(t.Id)));
@@ -118,7 +123,7 @@ public class ActivityController : BaseController
 
         // 計算總頁數
         var totalCount = activities.Count();
-        var totalPage = totalCount / segmentRequest.CountPerPage + (totalCount % segmentRequest.CountPerPage > 0 ? 1 : 0);
+        var totalPage = totalCount / segmentRequest.CountPerPage + 1;
 
         // 檢查 請求頁數 < 總頁數
         if (segmentRequest.Page > totalPage)
@@ -127,7 +132,7 @@ public class ActivityController : BaseController
         }
 
         // 分頁 & 排序
-        var orderedActivityList = DataHelper.GetSortedAndPagedData(activities.AsQueryable(), properties, segmentRequest.OrderBy, segmentRequest.Page, segmentRequest.CountPerPage);
+        var orderedActivityList = DataHelper.GetSortedAndPagedData(activities, properties, segmentRequest.OrderBy, segmentRequest.Page, segmentRequest.CountPerPage);
 
         // 轉換型態 Activity => ActivityDTO 
         var activityDTOList = _mapper.Map<IEnumerable<ActivityDTO>>(orderedActivityList);
@@ -268,12 +273,14 @@ public class ActivityController : BaseController
                 .Select(_tagService.GetTagByText)
                 .Where(x => x != null)
                 .Select(t => t.Id)
-                .ToList();
+                .AsEnumerable();
 
             // Tag Filter (至少要有一個 tag 符合)
-            activityList = activityList
-                .Where(a => !a.Tags.IsNullOrEmpty())
-                .Where(a => tagIds == null || a.Tags.Any(t => tagIds.Contains(t.Id)));
+            if (tagIds != null)
+            {
+                activityList = activityList
+                    .Where(a => a.Tags.Any(t => tagIds.Contains(t.Id)));
+            }
 
             // 加入 Tag 排序
             properties.Add(a => a.Tags.Count(t => tagIds.Contains(t.Id)));
@@ -331,6 +338,44 @@ public class ActivityController : BaseController
 
         return Ok(SegmentResponse);
     }
+
+    [Authorize]
+    [HttpGet("manageFilterValue")]
+    [Produces("application/json")]
+    public async Task<ActionResult<ActivityFilterDTO>> GetManagedActivityFilterValue()
+    {
+        // 獲得使用者資訊
+        var userId = (Guid?)ViewData["UserId"] ?? Guid.Empty;
+        var user = await _userService.GetByIdAsync(userId,
+            u => u.ActivityStatus
+        );
+
+        if (user == null)
+        {
+            throw new UserNotFoundException();
+        }
+
+        // 找出每個 activity 的 status
+        var activityStatus = await _userService.GetUserActivityStatusAsync(user.Id);
+
+        // 找出所有活動 並 filter status 
+        var tagIds = activityStatus.Keys.Select(id => _activityService.GetById(id, a => a.Tags))
+            .AsQueryable()
+            .Where(x => x != null)
+            .SelectMany(a => a.Tags)
+            .Distinct()
+            .Select(t => t.Id);
+
+        var tags = _tagService.GetAll(t => t.UserVoteTagInActivity, t => t.Activities).Where(t => tagIds.Contains(t.Id));
+        var tagsDTO = _mapper.Map<IEnumerable<TagDTO>>(tags);
+
+        return new ActivityFilterDTO
+        {
+            Status = _activityFilterValidationService.GetAllowStatusSet(),
+            Tags = tagsDTO
+        };
+    }
+
 
     /// <summary>
     /// 取得熱門活動清單
@@ -401,11 +446,7 @@ public class ActivityController : BaseController
         var userId = (Guid?)ViewData["UserId"] ?? Guid.Empty;
         var user = await _userService.GetByIdAsync(userId, u => u.ActivityStatus);
 
-        var statusList = new List<string> { "願望", "已註冊", "已完成" };
-        if (!statusList.Contains(status))
-        {
-            throw new BadRequestException($"活動狀態: {status} 不在可接受的狀態列表: \"{string.Join(", ", statusList)}\"");
-        }
+        _activityFilterValidationService.ValidateStatus(status);
 
         // 確認 User 存在
         if (user == null)
@@ -466,15 +507,122 @@ public class ActivityController : BaseController
     [AllowAnonymous]
     [HttpGet("activityFilterValue")]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActivityFilterDTO> GetActivityFilterValue()
     {
+        var tags = _tagService.GetAll(t => t.UserVoteTagInActivity, t => t.Activities);
+        var tagsDTO = _mapper.Map<IEnumerable<TagDTO>>(tags);
+
         return new ActivityFilterDTO
         {
-            Status = _activityFilterValidationService.GetAllowStatusSet()
+            Status = _activityFilterValidationService.GetAllowStatusSet(),
+            Tags = tagsDTO
         };
     }
+
+    [AllowAnonymous]
+    [HttpGet("search")]
+    public async Task<ActionResult<ActivitySearchResponseDTO>> GetSearchActivity([FromQuery] ActivitySearchRequestDTO request)
+    {
+        var activities = _activityService.GetAllActivitiesIncludeAll();
+
+        if (request.Keyword.IsNullOrEmpty() && request.Date.IsNullOrEmpty() && request.Tags.IsNullOrEmpty())
+        {
+            throw new BadRequestException("搜尋參數不得全部為空");
+        }
+
+        if (!request.Date.IsNullOrEmpty())
+        {
+            DateTime requestDate;
+            if (DateTime.TryParseExact(request.Date, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out requestDate))
+            {
+                activities.Where(a => a.CreatedAt.Date == requestDate.Date);
+            }
+            else
+            {
+                throw new Exception("Date Parse 錯誤，請使用格式 yyyy-MM-dd");
+            }
+        }
+
+        if (!request.Keyword.IsNullOrEmpty())
+        {
+            var keywords = request.Keyword.Trim().ToLower().Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+            foreach (var keyword in keywords)
+            {
+                activities = activities.Where(a => EF.Functions.Like(a.Title, $"%{keyword}%") || EF.Functions.Like(a.Content, $"%{keyword}%") || EF.Functions.Like(a.Subtitle, $"%{keyword}%"));
+            }
+        }
+
+        var properties = new List<Expression<Func<Activity, object>>>() { };
+
+        var tags = request.Tags?.Select(_tagService.GetTagByText).Where(x => x != null);
+
+        // Tag filter
+        if (tags != null)
+        {
+            // 獲取所有 tag Id
+            var tagIds = tags
+                .Select(t => t.Id)
+                .AsEnumerable();
+
+            // 增加 Tag Trend
+            foreach (var tag in tags)
+            {
+                _tagService.AddTagTrendCount(tag);
+                _tagService.Update(tag);
+            }
+            await _tagService.SaveChangesAsync();
+
+            // Tag Filter (至少要有一個 tag 符合)
+            if (tagIds != null)
+            {
+                activities = activities
+                    .Where(a => a.Tags.Any(t => tagIds.Contains(t.Id)));
+            }
+
+            // 加入 Tag 排序
+            properties.Add(a => a.Tags.Count(t => tagIds.Contains(t.Id)));
+        }
+
+        // 計算總頁數
+        var totalCount = activities.Count();
+        var totalPage = totalCount / request.CountPerPage + 1;
+
+        // 檢查 請求頁數 < 總頁數
+        if (request.Page > totalPage)
+        {
+            throw new BadRequestException($"請求的頁數({request.Page})大於總頁數({totalPage})");
+        }
+
+        // 分頁 & 排序
+        var orderedActivityList = DataHelper.GetSortedAndPagedData(activities, properties, request.OrderBy, request.Page, request.CountPerPage);
+
+        // 轉換型態 Activity => ActivityDTO 
+        var activityDTOList = _mapper.Map<IEnumerable<ActivityDTO>>(orderedActivityList);
+
+        // 轉換型態
+        var response = _mapper.Map<ActivitySearchResponseDTO>(request);
+        var tagBaseDTOs = _mapper.Map<IEnumerable<TagBaseDTO>>(tags);
+        response.Tags = tagBaseDTOs;
+        response.SearchData = activityDTOList;
+        response.TotalData = totalCount;
+        response.TotalPage = totalPage;
+
+        // 保存搜尋紀錄
+        if (User.Identity.IsAuthenticated)
+        {
+            var userId = (Guid?)ViewData["UserId"] ?? Guid.Empty;
+            var user = await _userService.GetByIdAsync(userId);
+            if (user != null)
+            {
+                // 轉換型態
+                var searchHistory = _mapper.Map<SearchHistory>(request);
+                searchHistory.Tags = tags?.ToList();
+                _userService.SaveSearchHistory(user, searchHistory);
+            }
+            await _userService.SaveChangesAsync();
+        }
+
+        return response;
+    }
 }
-
-
 

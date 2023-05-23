@@ -1,4 +1,5 @@
-﻿using ActiverWebAPI.Interfaces.Repository;
+﻿using ActiverWebAPI.Exceptions;
+using ActiverWebAPI.Interfaces.Repository;
 using ActiverWebAPI.Interfaces.UnitOfWork;
 using ActiverWebAPI.Models.DBEntity;
 using Microsoft.EntityFrameworkCore;
@@ -32,6 +33,11 @@ public class TagService : GenericService<Tag, int>
     {
         var tag = _tagRepository.Query().FirstOrDefault(x => x.Text == text);
         return tag;
+    }
+
+    public void AddTagTrendCount(Tag tag, int count = 1)
+    {
+        tag.TagClickCount += count;
     }
 
 }

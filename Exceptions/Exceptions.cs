@@ -56,3 +56,15 @@ public class UserNotFoundException : NotFoundException
     {
     }
 }
+
+public class TagNotFoundException : NotFoundException
+{
+    public TagNotFoundException(int tagId) : base($"Tag Id: {tagId} 不存在")
+    {
+
+    }
+    public TagNotFoundException(int tagId, Exception innerException) : base($"Tag Id: {tagId} 不存在", innerException)
+    {
+
+    }
+}

@@ -10,8 +10,10 @@ using ActiverWebAPI.Utils;
 using AutoMapper;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Identity.Client;
 using Microsoft.IdentityModel.Tokens;
 using System.Globalization;
+using System.Linq.Expressions;
 
 namespace ActiverWebAPI.Controllers;
 
@@ -24,21 +26,20 @@ public class UserController : BaseController
     private readonly TokenService _tokenService;
     private readonly IPasswordHasher _passwordHasher;
     private readonly IEmailService _emailService;
-    private readonly AreaService _areaService;
     private readonly ProfessionService _professionService;
     private readonly CountyService _countyService;
     private readonly IMapper _mapper;
     private readonly IWebHostEnvironment _env;
-
+    private readonly IConfiguration _configuration;
     public UserController(UserService userService,
         IMapper mapper,
         IWebHostEnvironment env,
         TokenService tokenService,
         IPasswordHasher passwordHasher,
         IEmailService emailService,
-        AreaService areaService,
         ProfessionService professionService,
-        CountyService countyService)
+        CountyService countyService,
+        IConfiguration configuration)
     {
         _userService = userService;
         _mapper = mapper;
@@ -46,9 +47,9 @@ public class UserController : BaseController
         _tokenService = tokenService;
         _passwordHasher = passwordHasher;
         _emailService = emailService;
-        _areaService = areaService;
         _professionService = professionService;
         _countyService = countyService;
+        _configuration = configuration;
     }
 
     [AllowAnonymous]
@@ -91,6 +92,7 @@ public class UserController : BaseController
         var userId = (Guid?)ViewData["UserId"] ?? Guid.Empty;
         var user = await _userService.GetByIdAsync(userId,
             user => user.Avatar,
+            user => user.County,
             user => user.Area,
             user => user.Professions,
             user => user.SearchHistory,
@@ -127,8 +129,10 @@ public class UserController : BaseController
         var userId = (Guid?)ViewData["UserId"] ?? Guid.Empty;
 
         var user = await _userService.GetByIdAsync(userId,
+            u => u.Avatar,
             u => u.County,
-            u => u.Area
+            u => u.Area,
+            u => u.Professions
             );
         if (user == null)
         {
@@ -136,13 +140,14 @@ public class UserController : BaseController
         }
 
         // 更新 Username
-        if (!string.IsNullOrEmpty(patchDoc.Username))
-        {
-            user.Username = patchDoc.Username;
-        }
+        user.Username = patchDoc.Username;
 
         // 更新性別
-        if (!string.IsNullOrEmpty(patchDoc.Gender))
+        if (patchDoc.Gender == null)
+        {
+            user.Gender = (int)Enums.UserGender.Undefined;
+        }
+        else
         {
             if (!Enum.TryParse(patchDoc.Gender, true, out UserGender gender))
             {
@@ -152,13 +157,19 @@ public class UserController : BaseController
         }
 
         // 更新生日
-        if (patchDoc.Birthday != null)
+        DateTime newBirthday;
+        var parseSuccess = DateTime.TryParseExact(patchDoc.Birthday, "yyyy-mm-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out newBirthday);
+        if (!parseSuccess)
         {
-            user.Birthday = DateTime.ParseExact(patchDoc.Birthday, "yyyy-mm-dd", CultureInfo.InvariantCulture);
+            user.Birthday = null;
+        }
+        else
+        {
+            user.Birthday = newBirthday;
         }
 
         // 更新職業
-        if (!patchDoc.Professions.IsNullOrEmpty())
+        if (patchDoc.Professions != null)
         {
             var professionList = patchDoc.Professions.Where(s => !string.IsNullOrWhiteSpace(s)).ToList();
             List<Profession> newProfessions = new();
@@ -179,18 +190,28 @@ public class UserController : BaseController
             }
             user.Professions = newProfessions;
         }
-
-        // 更新手機
-        if (!string.IsNullOrEmpty(patchDoc.Phone))
+        else
         {
-            user.Phone = patchDoc.Phone;
+            user.Professions = new List<Profession>() { };
         }
 
+        // 更新手機
+        user.Phone = patchDoc.Phone;
+
         // 更新地區
-        if (patchDoc.County != null)
+        if (patchDoc.County.IsNullOrEmpty())
         {
-            var countyName = patchDoc.County.CityName;
-            var areaName = patchDoc.County.Area.AreaName;
+            user.County = null;
+            user.Area = null;
+        }
+        else
+        {
+            if (patchDoc.Area.IsNullOrEmpty())
+            {
+                throw new BadRequestException("County 不為空時, Area 不得為空");
+            }
+            var countyName = patchDoc.County;
+            var areaName = patchDoc.Area;
             var county = await _countyService.GetByNameAsync(countyName);
             if (county == null)
             {
@@ -200,12 +221,13 @@ public class UserController : BaseController
             var area = county.Areas.FirstOrDefault(x => x.AreaName == areaName);
             if (area == null)
             {
-                throw new BadRequestException($"區域: {countyName} 不在 縣市: {countyName} 中");
+                throw new BadRequestException($"區域: {areaName} 不在 縣市: {countyName} 中");
             }
             user.County = county;
             user.Area = area;
         }
 
+        // 儲存更改
         _userService.Update(user);
         await _userService.SaveChangesAsync();
         var userInfoDTO = _mapper.Map<UserInfoDTO>(user);
@@ -271,14 +293,18 @@ public class UserController : BaseController
             throw new BadRequestException("此電子郵件已被註冊");
         }
 
+        // 檢查 Password 是否符合規範
+        _userService.CheckUserPassword(signUpDTO.Password);
+
         var user = _mapper.Map<User>(signUpDTO);
         await _userService.AddAsync(user);
-        await _userService.SaveChangesAsync();
 
         // 發送驗證電子郵件
         var token = await _userService.GenerateEmailConfirmationTokenAsync(user);
         var subject = "[noreply] Activer 註冊驗證碼";
         var message = $"<h1>您的驗證碼是: {token} ，此驗證碼於10分鐘後失效</h1>";
+
+        await _userService.SaveChangesAsync();
         await _emailService.SendEmailAsync(user.Email, subject, message);
 
         var userInfoDTO = _mapper.Map<UserInfoDTO>(user);
@@ -508,7 +534,7 @@ public class UserController : BaseController
             throw new UserNotFoundException();
         }
 
-        var result = _userService.VerifyVerificationCode(user, verifyCode);
+        var result = _userService.VerifyEmailVerificationCode(user, verifyCode);
         if (!result)
         {
             throw new BadRequestException("驗證碼不正確或已失效");
@@ -544,7 +570,57 @@ public class UserController : BaseController
         var token = await _userService.GenerateEmailConfirmationTokenAsync(user);
         var subject = "[noreply] Activer 註冊驗證碼";
         var message = $"<h1>您的驗證碼是: {token} ，此驗證碼於10分鐘後失效</h1>";
+
+        await _userService.SaveChangesAsync();
         await _emailService.SendEmailAsync(user.Email, subject, message);
+        return Ok();
+    }
+
+    // 注意 Timing Attack
+    [AllowAnonymous]
+    [HttpGet("resetPassword")]
+    [ProducesResponseType(StatusCodes.Status202Accepted)]
+    public async Task<ActionResult> ResetUserPassword([FromQuery] string email)
+    {
+        var user = await _userService.GetUserByEmailAsync(email);
+        if (user == null)
+            return Accepted();
+
+        // 發送驗證電子郵件
+        var token = await _userService.GenerateResetTokenAsync(user);
+        var subject = "[noreply] Activer 重設密碼鏈接";
+        var domain = _configuration["Host:Domain"];
+        var subURL = _configuration["Host:ResetPasswordURL"];
+        var message = $"<h1>請點擊以下的鏈接以重設密碼: <a href=\"{domain}{subURL}?token={token}&email={email}\">{domain}{subURL}?token={token}&email={email}</a>，此鏈結於10分鐘後失效</h1>";
+
+        await _userService.SaveChangesAsync();
+        await _emailService.SendEmailAsync(email, subject, message);
+        return Accepted();
+    }
+
+    [AllowAnonymous]
+    [HttpGet("verifyResetPassword")]
+    public async Task<ActionResult> VerifyAndChangeUserPassword([FromQuery] string email, string token, string password)
+    {
+        // 檢查 Password 是否符合規範
+        _userService.CheckUserPassword(password);
+
+        var user = await _userService.GetUserByEmailAsync(email, user => user.ResetPasswordTokens);
+        if (user == null)
+        {
+            throw new UnauthorizedException("驗證失敗");
+        }
+
+        var result = _userService.VerifyResetPasswordVerificationCodeAvailable(user, token);
+        if (!result)
+        {
+            throw new UnauthorizedException("驗證失敗");
+        }
+
+        user.HashedPassword = _passwordHasher.HashPassword(password);
+        _userService.Update(user);
+        await _userService.SaveChangesAsync();
+
         return Ok();
     }
 
@@ -567,4 +643,55 @@ public class UserController : BaseController
         var countyDTOList = _mapper.Map<List<CountyDTO>>(countyList);
         return countyDTOList;
     }
+
+    [Authorize]
+    [HttpGet("search/history")]
+    public async Task<ActionResult<SegmentsResponseBaseDTO<SearchHistoryDTO>>> GetSearchHistory([FromQuery] SegmentsRequestBaseDTO request)
+    {
+        var userId = (Guid?)ViewData["UserId"] ?? Guid.Empty;
+        var searchHistory = await _userService.GetSearchHistory(userId);
+
+        // 計算總頁數
+        var totalCount = searchHistory.Count();
+        var totalPage = totalCount / request.CountPerPage + 1;
+
+        // 檢查 請求頁數 < 總頁數
+        if (request.Page > totalPage)
+        {
+            throw new BadRequestException($"請求的頁數({request.Page})大於總頁數({totalPage})");
+        }
+
+        // 初始化 SortBy 列表
+        var properties = new List<Expression<Func<SearchHistory, object>>>() { };
+        request.OrderBy ??= "Descending";
+        var sortBy = "CreatedAt";
+
+        // 加入 sortBy 列表
+        switch (sortBy)
+        {
+            case "AddTime":
+                properties.Add(a => a.CreatedAt);
+                break;
+            default:
+                var parameter = Expression.Parameter(typeof(SearchHistory), "a");
+                var property = Expression.Property(parameter, sortBy);
+                var cast = Expression.Convert(property, typeof(object));
+                var lambda = Expression.Lambda<Func<SearchHistory, object>>(cast, parameter);
+                properties.Add(lambda);
+                break;
+        }
+
+        var orderedSearchHistoryList = DataHelper.GetSortedAndPagedData(searchHistory.AsQueryable(), properties, request.OrderBy, request.Page, request.CountPerPage);
+
+        var searchHistoryDTOList = _mapper.Map<IEnumerable<SearchHistoryDTO>>(orderedSearchHistoryList);
+
+        // 轉換型態
+        var response = _mapper.Map<SegmentsResponseBaseDTO<SearchHistoryDTO>>(request);
+        response.SearchData = searchHistoryDTOList;
+        response.TotalData = totalCount;
+        response.TotalPage = totalPage;
+
+        return response;
+    }
+
 }

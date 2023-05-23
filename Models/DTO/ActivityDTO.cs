@@ -56,3 +56,17 @@ public class ActivityFilterDTO
     public IEnumerable<TagDTO>? Tags { get; set; }
     public IEnumerable<string>? Status { get; set; }
 }
+
+public class ActivitySearchResponseDTO : SegmentsResponseBaseDTO<ActivityDTO>
+{
+    public string? Keyword { get; set; }
+    public IEnumerable<TagBaseDTO>? Tags { get; set; }
+    public string? Date { get; set; }
+}
+
+public class ActivitySearchRequestDTO : SegmentsRequestBaseDTO
+{
+    public string? Keyword { get; set; }
+    public IEnumerable<string>? Tags { get; set; }
+    public string? Date { get; set; }
+}

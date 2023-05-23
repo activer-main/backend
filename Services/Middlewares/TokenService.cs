@@ -7,6 +7,7 @@ using ActiverWebAPI.Models.DBEntity;
 using ActiverWebAPI.Models.DTO;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
+using NuGet.Common;
 
 public class TokenService
 {
