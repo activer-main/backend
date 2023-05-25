@@ -28,6 +28,8 @@ public class User : BaseEntity, IEntity<Guid>
     [Required]
     public string HashedPassword { get; set; }
 
+    public DateTime? LastChangePasswordTime { get; set; }
+
     [Column(TypeName = "varchar(64)")]
     public string? Phone { get; set; }
 
@@ -35,6 +37,7 @@ public class User : BaseEntity, IEntity<Guid>
     public DateTime? Birthday { get; set; }
 
     public Avatar? Avatar { get; set; }
+    [ForeignKey("Avatar")]
     public int? AvatarId { get; set; }
 
     public County? County { get; set; }
@@ -74,6 +77,8 @@ public class Avatar : BaseEntity, IEntity<int>
     [Column(TypeName = "varchar(32)")]
     public string FileType { get; set; }
     public string FilePath { get; set; }
+
+    public Guid UserId { get; set; }
 
     [JsonIgnore]
     [Required]
@@ -153,12 +158,13 @@ public class Objective : BaseEntity, IEntity<int>
 }
 
 [Index(nameof(UserId), nameof(ActivityId), IsUnique = true)]
-public class Comment : BaseEntity, IEntity<int>
+public class Comment : BaseEntity, IEntity<Guid>
 {
-    public int Id { get; set; }
+    public Guid Id { get; set; }
     [Range(0, 50)]
     public int Rate { get; set; }
     public string Content { get; set; }
+    public int Sequence { get; set; }
 
     [JsonIgnore]
     [Required]

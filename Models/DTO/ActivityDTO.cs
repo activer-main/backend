@@ -70,3 +70,15 @@ public class ActivitySearchRequestDTO : SegmentsRequestBaseDTO
     public IEnumerable<string>? Tags { get; set; }
     public string? Date { get; set; }
 }
+
+public class ActivityCommentRequestDTO : SegmentsRequestBaseDTO
+{
+    public Guid ActivityId { get; set; }
+    public string? SortBy { get; set; } = "CreatedAt";
+}
+
+public class ActivityCommentResponseDTO : SegmentsResponseBaseDTO<CommentDTO>
+{
+    public Guid ActivityId { get; set; }
+    public string SortBy { get; set; }
+}

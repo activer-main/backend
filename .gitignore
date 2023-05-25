@@ -368,4 +368,5 @@ Migrations/
 # Srouces
 # wwwroot/
 wwwroot/avatars/*
+!wwwroot/avatars/UserDefault.jpg
 # /appsettings.json

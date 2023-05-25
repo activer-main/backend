@@ -30,6 +30,7 @@ public class Activity : BaseEntity, IEntity<Guid>
     public List<Tag>? Tags { get; set; }
     public List<UserVoteTagInActivity>? UserVoteTagInActivity { get; set; }
     public List<UserActivityRecord>? UserActivityRecords { get; set; }
+    public List<Comment>? Comments { get; set; }
 }
 
 public class ActivityFee : BaseEntity, IEntity<int>

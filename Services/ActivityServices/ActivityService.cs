@@ -1,4 +1,5 @@
-﻿using ActiverWebAPI.Interfaces.Repository;
+﻿using ActiverWebAPI.Exceptions;
+using ActiverWebAPI.Interfaces.Repository;
 using ActiverWebAPI.Interfaces.UnitOfWork;
 using ActiverWebAPI.Models.DBEntity;
 using ActiverWebAPI.Services.TagServices;
@@ -59,10 +60,10 @@ public class ActivityService : GenericService<Activity, Guid>
         return activities;
     }
 
-    public async Task<Activity?> GetActivityIncludeAllByIdAsync(Guid Id)
+    public async Task<Activity?> GetActivityIncludeAllByIdAsync(Guid id)
     {
         var activity = await _activityRepository.Query()
-            .Where(x => x.Id.Equals(Id))
+            .Where(x => x.Id.Equals(id))
             .Include(ac => ac.Images)
             .Include(ac => ac.Sources)
             .Include(ac => ac.Connections)
@@ -80,10 +81,10 @@ public class ActivityService : GenericService<Activity, Guid>
         return activity;
     }
 
-    public Activity? GetActivityIncludeAllById(Guid Id)
+    public Activity? GetActivityIncludeAllById(Guid id)
     {
         var activity = _activityRepository.Query()
-            .Where(x => x.Id.Equals(Id))
+            .Where(x => x.Id.Equals(id))
             .Include(ac => ac.Images)
             .Include(ac => ac.Sources)
             .Include(ac => ac.Connections)
@@ -104,5 +105,16 @@ public class ActivityService : GenericService<Activity, Guid>
     public void UpdateActivityStatus(ActivityStatus activityStatusToUpdate)
     {
         _activityStatusRepository.Update(activityStatusToUpdate);
+    }
+
+    public async Task<Activity> GetActivityIncludeCommentsAsync(Guid id)
+    {
+        var activity = await _activityRepository.Query()
+            .Where(x => x.Id.Equals(id))
+            .Include(ac => ac.Comments)
+                .ThenInclude(c => c.User)
+            .FirstOrDefaultAsync();
+        
+        return activity;
     }
 }

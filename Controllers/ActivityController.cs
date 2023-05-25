@@ -12,10 +12,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Globalization;
-using System.Linq;
 using System.Linq.Expressions;
-using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace ActiverWebAPI.Controllers;
 
@@ -624,5 +621,135 @@ public class ActivityController : BaseController
 
         return response;
     }
+
+    [HttpPost("comment")]
+    public async Task<IActionResult> PostComment([FromBody] CommentPostDTO request)
+    {
+        var userId = (Guid?)ViewData["UserId"] ?? Guid.Empty;
+        var user = await _userService.GetByIdAsync(userId, u => u.Comments);
+        if (user == null)
+        {
+            throw new UserNotFoundException();
+        }
+
+        var activityId = request.ActivityId;
+
+        var activity = await _activityService.GetByIdAsync(activityId, ac => ac.Comments);
+        if (activity == null)
+            return BadRequest("活動不存在");
+
+        var existComment = user.Comments?.Where(x => x.ActivityId == activityId);
+        if (!existComment.IsNullOrEmpty())
+        {
+            return BadRequest("使用者已留言");
+        }
+
+        // 轉換型態
+        var comment = _mapper.Map<Comment>(request);
+
+        // 找出留言的 Sequence
+        var sequence = 0;
+        if (!activity.Comments.IsNullOrEmpty())
+        {
+            sequence = activity.Comments.Select(x => x.Sequence).Max();
+        }
+
+        comment.Activity = activity;
+        comment.Sequence = sequence;
+        user.Comments ??= new List<Comment> { };
+        user.Comments.Add(comment);
+
+        _userService.Update(user);
+        await _userService.SaveChangesAsync();
+
+        return Ok();
+    }
+
+    [AllowAnonymous]
+    [HttpGet("comment")]
+    public async Task<ActionResult<ActivityCommentResponseDTO>> GetComments([FromQuery] ActivityCommentRequestDTO request)
+    {
+        var activity = await _activityService.GetActivityIncludeCommentsAsync(request.ActivityId);
+
+        if (activity == null)
+        {
+            return BadRequest("活動不存在");
+        }
+
+        var comments = activity.Comments;
+        comments ??= new List<Comment> { };
+
+        // 給 SortBy 與 OrderBy 預設值
+        request.SortBy ??= "CreatedAt";
+        request.OrderBy ??= "Descending";
+
+        // 初始化 SortBy 列表
+        var properties = new List<Expression<Func<Comment, object>>>() { };
+        var sortBy = request.SortBy;
+
+        // 加入 sortBy 列表
+        switch (sortBy)
+        {
+            case "AddTime":
+                properties.Add(a => a.CreatedAt);
+                break;
+            default:
+                var parameter = Expression.Parameter(typeof(Comment), "a");
+                var property = Expression.Property(parameter, sortBy);
+                var cast = Expression.Convert(property, typeof(object));
+                var lambda = Expression.Lambda<Func<Comment, object>>(cast, parameter);
+                properties.Add(lambda);
+                break;
+        }
+
+        // 計算總頁數
+        var totalCount = comments.Count();
+        var totalPage = totalCount / request.CountPerPage + 1;
+
+        // 檢查 請求頁數 < 總頁數
+        if (request.Page > totalPage)
+        {
+            throw new BadRequestException($"請求的頁數({request.Page})大於總頁數({totalPage})");
+        }
+
+        // 分頁 & 排序
+        var orderedCommentsList = DataHelper.GetSortedAndPagedData(comments.AsQueryable(), properties, request.OrderBy, request.Page, request.CountPerPage);
+
+        // 轉換型態
+        var commentDTOList = _mapper.Map<IEnumerable<CommentDTO>>(orderedCommentsList);
+
+        var response = _mapper.Map<ActivityCommentResponseDTO>(request);
+        response.SearchData = commentDTOList;
+        response.TotalPage = (totalCount / request.CountPerPage) + 1;
+        response.TotalData = totalCount;
+
+        return Ok(response);
+    }
+
+    [HttpDelete("comment/{id}")]
+    public async Task<IActionResult> DeleteComment(Guid id)
+    {
+        var userId = (Guid?)ViewData["UserId"] ?? Guid.Empty;
+        var user = await _userService.GetByIdAsync(userId, u => u.Comments);
+        if (user == null)
+        {
+            throw new UserNotFoundException();
+        }
+
+        var toDelete = user.Comments?.FirstOrDefault(x => x.Id == id);
+
+        if (toDelete == null)
+        {
+            return BadRequest("留言不存在或沒有權限");
+        }
+
+        user.Comments?.Remove(toDelete);
+
+        _userService.Update(user);
+        await _userService.SaveChangesAsync();
+
+        return Ok();
+    }
 }
+
 

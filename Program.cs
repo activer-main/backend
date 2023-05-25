@@ -87,8 +87,7 @@ builder.Services.AddAutoMapper(
     cfg => cfg.AddProfile(new MappingProfile(
         builder.Services.BuildServiceProvider().GetService<IPasswordHasher>(),
         builder.Services.BuildServiceProvider().GetService<IConfiguration>(),
-        builder.Services.BuildServiceProvider().GetService<IUnitOfWork>(),
-        builder.Services.BuildServiceProvider().GetService<TagService>()
+        builder.Services.BuildServiceProvider().GetService<IUnitOfWork>()
         )),
         AppDomain.CurrentDomain.GetAssemblies()
 );

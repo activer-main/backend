@@ -100,3 +100,22 @@ public class SearchHistoryDTO
     public IEnumerable<TagBaseDTO>? Tags { get; set; }
     public DateTime? Date { get; set; }
 }
+
+
+public class CommentDTO
+{
+    public Guid Id { get; set; }
+    public Guid UserId { get; set; }
+    public string Username { get; set; }
+    public string UserAvatar { get; set; }
+    public float Rate { get; set; } = 0;
+    public string Content { get; set; }
+    public int Sequence { get; set;  }
+}
+
+public class CommentPostDTO
+{
+    public Guid ActivityId { get; set; }
+    public float Rate { get; set; } = 0;
+    public string Content { get; set; }
+}

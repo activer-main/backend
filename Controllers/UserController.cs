@@ -461,13 +461,14 @@ public class UserController : BaseController
             throw new UserNotFoundException();
         }
 
-        if (user.Avatar == null)
-        {
-            throw new NotFoundException("我還沒做好默認頭貼");
-        }
+        string filePath = Path.Combine(_env.WebRootPath, "avatars", "UserDefault.jpg");
+        string contentType = "image/jpg";
 
-        string filePath = user.Avatar.FilePath;
-        string contentType = user.Avatar.FileType;
+        if (user.Avatar != null)
+        {
+            filePath = user.Avatar.FilePath;
+            contentType = user.Avatar.FileType;
+        }
 
         // 檢查檔案是否存在
         if (!System.IO.File.Exists(filePath))
