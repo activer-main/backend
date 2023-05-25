@@ -4,7 +4,6 @@ using ActiverWebAPI.Interfaces.UnitOfWork;
 using ActiverWebAPI.Profile;
 using ActiverWebAPI.Services;
 using ActiverWebAPI.Services.ActivityServices;
-using ActiverWebAPI.Services.Filters;
 using ActiverWebAPI.Services.Middlewares;
 using ActiverWebAPI.Services.TagServices;
 using ActiverWebAPI.Services.UnitOfWork;

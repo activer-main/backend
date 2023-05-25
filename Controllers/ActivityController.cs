@@ -13,11 +13,13 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Globalization;
 using System.Linq.Expressions;
+using static System.Runtime.InteropServices.JavaScript.JSType;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace ActiverWebAPI.Controllers;
+[Authorize]
 
 [ApiController]
-[Authorize]
 [Route("api/[controller]")]
 public class ActivityController : BaseController
 {
