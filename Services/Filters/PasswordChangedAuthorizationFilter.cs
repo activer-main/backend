@@ -38,11 +38,11 @@ public class PasswordChangedAuthorizationFilter : IAsyncActionFilter
         {
             var issuedDate = DateTimeOffset.FromUnixTimeSeconds(issuedDateUnix).UtcDateTime;
             // 使用 issuedDate 進行需要的處理
-            if (user.LastPasswordModifiedTime == null)
+            if (user.LastChangePasswordTime == null)
             {
                 return;
             }
-            if (user.LastPasswordModifiedTime < issuedDate)
+            if (user.LastChangePasswordTime < issuedDate)
             {
                 context.Result = new UnauthorizedResult();
                 return;
