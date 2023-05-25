@@ -644,7 +644,6 @@ public class UserController : BaseController
         return countyDTOList;
     }
 
-    [Authorize]
     [HttpGet("search/history")]
     public async Task<ActionResult<SegmentsResponseBaseDTO<SearchHistoryDTO>>> GetSearchHistory([FromQuery] SegmentsRequestBaseDTO request)
     {
@@ -692,6 +691,30 @@ public class UserController : BaseController
         response.TotalPage = totalPage;
 
         return response;
+    }
+
+    [HttpDelete("search/history/{id}")]
+    public async Task<IActionResult> DeleteSearchHistory(Guid id)
+    {
+        var userId = (Guid?)ViewData["UserId"] ?? Guid.Empty;
+        var user = await _userService.GetByIdAsync(userId,
+            user => user.UserActivityRecords
+        );
+
+        // 檢查使用者是否存在
+        if (user == null)
+        {
+            throw new UserNotFoundException();
+        }
+
+        if (user.UserActivityRecords == null)
+        {
+            throw new NotFoundException($"搜尋紀錄: {id}, 不存在");
+        }
+        user.UserActivityRecords.Where(ar => ar.Id != id);
+        _userService.Update(user);
+        await _userService.SaveChangesAsync();
+        return Ok();
     }
 
 }

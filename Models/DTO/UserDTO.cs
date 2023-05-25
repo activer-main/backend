@@ -95,6 +95,7 @@ public class AreaPostDTO
 
 public class SearchHistoryDTO
 {
+    public Guid Id { get; set; }
     public string? Keyword { get; set; }
     public IEnumerable<TagBaseDTO>? Tags { get; set; }
     public DateTime? Date { get; set; }
