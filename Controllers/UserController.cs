@@ -698,11 +698,11 @@ public class UserController : BaseController
     }
 
     [HttpDelete("search/history/{id}")]
-    public async Task<IActionResult> DeleteSearchHistory(Guid id)
+    public async Task<IActionResult> DeleteSearchHistory(int id)
     {
         var userId = (Guid?)ViewData["UserId"] ?? Guid.Empty;
         var user = await _userService.GetByIdAsync(userId,
-            user => user.UserActivityRecords
+            user => user.SearchHistory
         );
 
         // 檢查使用者是否存在
@@ -711,11 +711,11 @@ public class UserController : BaseController
             throw new UserNotFoundException();
         }
 
-        if (user.UserActivityRecords == null)
+        if (user.SearchHistory == null)
         {
             throw new NotFoundException($"搜尋紀錄: {id}, 不存在");
         }
-        user.UserActivityRecords.Where(ar => ar.Id != id);
+        user.SearchHistory.Where(ar => ar.Id != id);
         _userService.Update(user);
         await _userService.SaveChangesAsync();
         return Ok();
