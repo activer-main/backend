@@ -55,7 +55,7 @@ public class UserService : GenericService<User, Guid>
         return _configuration["Server:Domain"] + $"/api/user/avatar/{user.Avatar.Id}";
     }
 
-    public async Task<IEnumerable<SearchHistory>>? GetSearchHistory(Guid userId)
+    public async Task<IEnumerable<SearchHistory>> GetSearchHistory(Guid userId)
     {
         var query = _userRepository.Query()
             .Include(x => x.SearchHistory)
@@ -65,6 +65,12 @@ public class UserService : GenericService<User, Guid>
         {
             throw new UserNotFoundException();
         }
+
+        if (user.SearchHistory == null)
+        {
+            return new List<SearchHistory>();
+        }
+
         return user.SearchHistory;
     }
 

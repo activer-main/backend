@@ -715,7 +715,7 @@ public class UserController : BaseController
         {
             throw new NotFoundException($"搜尋紀錄: {id}, 不存在");
         }
-        user.SearchHistory.Where(ar => ar.Id != id);
+        user.SearchHistory = user.SearchHistory.Where(ar => ar.Id != id).ToList();
         _userService.Update(user);
         await _userService.SaveChangesAsync();
         return Ok();
