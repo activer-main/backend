@@ -2,6 +2,7 @@
 using ActiverWebAPI.Models.DBEntity;
 using ActiverWebAPI.Models.DTO;
 using ActiverWebAPI.Services.ActivityServices;
+using ActiverWebAPI.Services.Filters;
 using ActiverWebAPI.Services.TagServices;
 using ActiverWebAPI.Services.UserServices;
 using ActiverWebAPI.Utils;
@@ -13,13 +14,12 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Globalization;
 using System.Linq.Expressions;
-using static System.Runtime.InteropServices.JavaScript.JSType;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace ActiverWebAPI.Controllers;
-[Authorize]
 
+[Authorize]
 [ApiController]
+[TypeFilter(typeof(PasswordChangedAuthorizationFilter))]
 [Route("api/[controller]")]
 public class ActivityController : BaseController
 {

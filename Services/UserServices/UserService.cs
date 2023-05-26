@@ -59,7 +59,7 @@ public class UserService : GenericService<User, Guid>
     {
         var query = _userRepository.Query()
             .Include(x => x.SearchHistory)
-            .ThenInclude(x => x.Tags);
+                .ThenInclude(x => x.Tags);
         var user = await query.FirstOrDefaultAsync(e => e.Id == userId);
         if (user == null)
         {

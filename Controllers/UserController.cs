@@ -19,6 +19,7 @@ namespace ActiverWebAPI.Controllers;
 
 [ApiController]
 [Authorize]
+[TypeFilter(typeof(PasswordChangedAuthorizationFilter))]
 [Route("api/[controller]")]
 public class UserController : BaseController
 {
@@ -83,6 +84,7 @@ public class UserController : BaseController
     /// 取得當前已登入的使用者資訊
     /// </summary>
     /// <returns>使用者資訊</returns>
+    [TypeFilter(typeof(PasswordChangedAuthorizationFilter))]
     [HttpGet]
     [ProducesResponseType(typeof(UserDTO), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -619,6 +621,7 @@ public class UserController : BaseController
         }
 
         user.HashedPassword = _passwordHasher.HashPassword(password);
+        user.LastChangePasswordTime = DateTime.UtcNow;
         _userService.Update(user);
         await _userService.SaveChangesAsync();
 

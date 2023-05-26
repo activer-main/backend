@@ -77,7 +77,12 @@ public class MappingProfile : Profile
 
         CreateMap<ActivityCommentRequestDTO, ActivityCommentResponseDTO>();
 
-        CreateMap<SearchHistory, SearchHistoryDTO>();
+        CreateMap<SearchHistory, SearchHistoryDTO>()
+            .ForMember(dest => dest.Keyword, opt => opt.MapFrom(src => src.Keyword))
+            .ForMember(dest => dest.Tags, opt => opt.MapFrom(src => src.Tags))
+            .ForMember(dest => dest.Date, opt => opt.MapFrom(src => src.Date))
+            ;
+       
         CreateMap<CommentPostDTO, Comment>()
             .ForMember(dest => dest.Rate, opt => opt.MapFrom(src => (int) (src.Rate * 10)))
             .ForMember(dest => dest.Id, opt => opt.Ignore());

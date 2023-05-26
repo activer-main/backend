@@ -7,7 +7,6 @@ using ActiverWebAPI.Models.DBEntity;
 using ActiverWebAPI.Models.DTO;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
-using NuGet.Common;
 
 public class TokenService
 {
@@ -24,7 +23,8 @@ public class TokenService
         {
             new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
             new Claim(ClaimTypes.Email, user.Email),
-            new Claim(ClaimTypes.Role, ((UserRole) user.UserRole).ToString())
+            new Claim(ClaimTypes.Role, ((UserRole) user.UserRole).ToString()),
+            new Claim(JwtRegisteredClaimNames.Iat, DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString())
         };
 
         var expiresIn = 7;
