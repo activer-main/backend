@@ -57,7 +57,7 @@ public class PasswordChangedAuthorizationFilter : IAsyncActionFilter
             // 使用 issuedDate 進行需要的處理
             if (user.LastChangePasswordTime == null)
             {
-                return;
+                await next();
             }
             if (user.LastChangePasswordTime > issuedDate)
             {
