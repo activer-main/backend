@@ -68,8 +68,8 @@ builder.Services.AddScoped<ActivityService>();
 builder.Services.AddScoped<TokenService>();
 builder.Services.AddSingleton<IPasswordHasher, PasswordHasher>();
 builder.Services.AddScoped<IEmailService, EmailService>();
-builder.Services.AddScoped<ErrorHandlingMiddleware>();
-
+//builder.Services.AddScoped<ErrorHandlingMiddleware>();
+builder.Services.AddScoped<ApiResponseMiddleware>();
 // CORS
 builder.Services.AddCors(options =>
 {
@@ -116,7 +116,8 @@ if (app.Environment.IsDevelopment())
 }
 
 // Middlewares
-app.UseMiddleware<ErrorHandlingMiddleware>();
+app.UseMiddleware<ApiResponseMiddleware>();
+//app.UseMiddleware<ErrorHandlingMiddleware>();
 
 app.UseCors("DevCorsPolicy");
 app.UseStaticFiles();
