@@ -9,6 +9,7 @@ using Swashbuckle.AspNetCore.Annotations;
 using ActiverWebAPI.Models.DBEntity;
 using Microsoft.IdentityModel.Tokens;
 using ActiverWebAPI.Services.Filters;
+using ActiverWebAPI.Exceptions;
 
 namespace ActiverWebAPI.Controllers;
 
