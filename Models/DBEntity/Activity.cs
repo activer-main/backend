@@ -41,7 +41,9 @@ public class ActivityFee : BaseEntity, IEntity<int>
     [Column(TypeName = "nvarchar(128)")]
     public string Fee { get; set; }
 
+    [Required]
     public Guid ActivityId { get; set; }
+    [Required]
     [JsonIgnore]
     public Activity Activity { get; set; }
 }
