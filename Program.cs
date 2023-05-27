@@ -12,6 +12,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using Swashbuckle.AspNetCore.SwaggerUI;
 using System.Text;
 using static ActiverWebAPI.Dev.Swagger.Filter;
 
@@ -112,7 +113,12 @@ var app = builder.Build();
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
-    app.UseSwaggerUI();
+    app.UseSwaggerUI(c =>
+    {
+        //c.SwaggerEndpoint("/swagger/v1/swagger.json", "API v1");
+        c.InjectStylesheet("/swagger-ui/SwaggerDark.css"); // 引入dark主題樣式表
+        c.DocExpansion(DocExpansion.None); // 設定預設展開狀態
+    });
 }
 
 // Middlewares
