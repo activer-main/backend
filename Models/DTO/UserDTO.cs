@@ -111,6 +111,8 @@ public class CommentDTO
     public float Rate { get; set; } = 0;
     public string Content { get; set; }
     public int Sequence { get; set;  }
+    public DateTime CreatedAt { get; set; }
+    public DateTime ModifiedAt { get; set; }
 }
 
 public class CommentPostDTO

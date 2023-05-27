@@ -12,6 +12,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.CodeAnalysis;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using NuGet.Configuration;
 using System.Globalization;
 using System.Linq.Expressions;
 
@@ -640,10 +641,18 @@ public class ActivityController : BaseController
         if (activity == null)
             return BadRequest("活動不存在");
 
-        var existComment = user.Comments?.Where(x => x.ActivityId == activityId);
-        if (!existComment.IsNullOrEmpty())
+        var existComment = user.Comments?.FirstOrDefault(x => x.ActivityId == activityId);
+
+        // 留言已存在 => 修改
+        if (existComment != null)
         {
-            return BadRequest("使用者已留言");
+            var newComment = _mapper.Map<Comment>(request);
+            existComment.Rate = newComment.Rate;
+            existComment.ModifiedAt = newComment.CreatedAt;
+            existComment.Content = newComment.Content;
+            _userService.Update(user);
+            await _userService.SaveChangesAsync();
+            return Ok();
         }
 
         // 轉換型態
@@ -696,11 +705,17 @@ public class ActivityController : BaseController
                 properties.Add(a => a.CreatedAt);
                 break;
             default:
-                var parameter = Expression.Parameter(typeof(Comment), "a");
-                var property = Expression.Property(parameter, sortBy);
-                var cast = Expression.Convert(property, typeof(object));
-                var lambda = Expression.Lambda<Func<Comment, object>>(cast, parameter);
-                properties.Add(lambda);
+                try
+                {
+                    var parameter = Expression.Parameter(typeof(Comment), "a");
+                    var property = Expression.Property(parameter, sortBy);
+                    var cast = Expression.Convert(property, typeof(object));
+                    var lambda = Expression.Lambda<Func<Comment, object>>(cast, parameter);
+                    properties.Add(lambda);
+                }catch (ArgumentException ex)
+                {
+                    throw new BadRequestException("SortBy 參數不存在");
+                }
                 break;
         }
 
@@ -726,6 +741,14 @@ public class ActivityController : BaseController
         response.TotalData = totalCount;
 
         return Ok(response);
+    }
+
+    [AllowAnonymous]
+    [HttpGet("comment/filterValue")]
+    public async Task<ActionResult<string[]>> GetCommentsSortByValue()
+    {
+        string[] sortByList = { "AddTime" };
+        return sortByList;
     }
 
     [HttpDelete("comment/{id}")]
