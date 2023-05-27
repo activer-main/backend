@@ -697,8 +697,17 @@ public class UserController : BaseController
         return response;
     }
 
-    [HttpDelete("search/history/{id}")]
-    public async Task<IActionResult> DeleteSearchHistory(int id)
+
+    /// <summary>
+    /// 刪除多筆的搜尋紀錄或全部刪除
+    /// </summary>
+    /// <param name="ids">要刪除的搜尋紀錄 ID</param>
+    /// <remarks>
+    /// 需要授權, 如果 ids 為空則刪除全部的紀錄
+    /// </remarks>
+    /// <returns>發送成功回傳 200，授權失敗回傳 401</returns>
+    [HttpDelete("search/history")]
+    public async Task<IActionResult> DeleteSearchHistory([FromQuery] int[]? ids)
     {
         var userId = (Guid?)ViewData["UserId"] ?? Guid.Empty;
         var user = await _userService.GetByIdAsync(userId,
@@ -713,12 +722,20 @@ public class UserController : BaseController
 
         if (user.SearchHistory == null)
         {
-            throw new NotFoundException($"搜尋紀錄: {id}, 不存在");
+            throw new NotFoundException($"搜尋紀錄: {ids}, 不存在");
         }
-        user.SearchHistory = user.SearchHistory.Where(ar => ar.Id != id).ToList();
+
+        if (ids == null || ids.Length == 0)
+        {
+            user.SearchHistory = new List<SearchHistory>() { };
+        }
+        else
+        {
+            user.SearchHistory = user.SearchHistory.Where(ar => !ids.Contains(ar.Id)).ToList();
+        }
+
         _userService.Update(user);
         await _userService.SaveChangesAsync();
         return Ok();
     }
-
 }
