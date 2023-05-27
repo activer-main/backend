@@ -8,11 +8,13 @@ using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
 using ActiverWebAPI.Models.DBEntity;
 using Microsoft.IdentityModel.Tokens;
-using System.Linq;
+using ActiverWebAPI.Services.Filters;
 
 namespace ActiverWebAPI.Controllers;
 
 [ApiController]
+[Authorize(Roles = "Admin, InternalUser")]
+[TypeFilter(typeof(PasswordChangedAuthorizationFilter))]
 [Route("api/[controller]")]
 public class InternalController : BaseController
 {
@@ -50,11 +52,10 @@ public class InternalController : BaseController
     /// <returns>新增成功的活動資料</returns>
     /// <response code="200">成功回傳新增成功的活動資料</response>
     /// <response code="401">使用者未登入，無法新增活動</response>
-    [Authorize(Roles = "Admin, InternalUser")]
     [SwaggerOperation(
         Summary = "Post activities for internal users only"
     )]
-    [HttpPost("Activity")]
+    [HttpPost("activity")]
     [Produces("application/json")]
     [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(List<ActivityDTO>))]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -67,7 +68,7 @@ public class InternalController : BaseController
         // 獲取全部 location
         var locationList = activities.SelectMany(ac => ac.Branches).Where(x => x.Location != null).SelectMany(b => b.Location).DistinctBy(x => x.Content).ToList();
 
-        foreach(var location in locationList)
+        foreach (var location in locationList)
         {
             // 追蹤 location 實體
             var existingLocation = _locationService.GetByContent(location.Content);
@@ -119,11 +120,39 @@ public class InternalController : BaseController
         return activityDTOs;
     }
 
-    [Authorize(Roles = "Admin, InternalUser")]
+    /// <summary>
+    /// 刪除活動
+    /// </summary>
+    /// <param name="ids">欲刪除的活動 ID</param>
+    /// <remark>如果不給 ID 會直接刪除所有活動</remark>
+    /// <returns>No Content</returns>
+    /// <response code="204">成功刪除</response>
+    /// <response code="401">使用者未登入</response>
+    [SwaggerOperation(
+        Summary = "Delete activity for internal users only"
+    )]
+    [HttpDelete("activity")]
+    public async Task<IActionResult> DeleteActivities([FromQuery] Guid[]? ids)
+    {
+        if (ids == null)
+        {
+            var activities = _activityService.GetAll();
+            _activityService.RemoveRange(activities);
+        }
+        else
+        {
+            var activities = _activityService.GetAll().Where(x => ids.Contains(x.Id));
+            _activityService.RemoveRange(activities);
+        }
+
+        await _activityService.SaveChangesAsync();
+        return NoContent();
+    }
+
     [SwaggerOperation(
         Summary = "Post Professions for internal users only"
     )]
-    [HttpPost("Professions")]
+    [HttpPost("professions")]
     [Produces("application/json")]
     [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(string))]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -155,11 +184,10 @@ public class InternalController : BaseController
         return Ok($"新增的職業: {string.Join(", ", newProfessions)};已存在的職業: {string.Join(", ", existProfessions)}");
     }
 
-    [Authorize(Roles = "Admin, InternalUser")]
     [SwaggerOperation(
         Summary = "Delete Professions for internal users only"
     )]
-    [HttpDelete("Professions")]
+    [HttpDelete("professions")]
     [Produces("application/json")]
     [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(string))]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -188,11 +216,10 @@ public class InternalController : BaseController
         return Ok($"不存在的職業: {string.Join(", ", notExistProfessions)};已刪除的職業: {string.Join(", ", deletedProfessions)}");
     }
 
-    [Authorize(Roles = "Admin, InternalUser")]
     [SwaggerOperation(
          Summary = "Post Professions for internal users only"
      )]
-    [HttpPost("Locations")]
+    [HttpPost("locations")]
     [Produces("application/json")]
     [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(string))]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
