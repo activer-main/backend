@@ -122,7 +122,7 @@ if (app.Environment.IsDevelopment())
 }
 
 // Middlewares
-app.UseMiddleware<ApiResponseMiddleware>();
+//app.UseMiddleware<ApiResponseMiddleware>();
 //app.UseMiddleware<ErrorHandlingMiddleware>();
 
 app.UseCors("DevCorsPolicy");

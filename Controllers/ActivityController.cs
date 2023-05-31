@@ -58,8 +58,15 @@ public class ActivityController : BaseController
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<ActionResult<ActivitySegmentResponseDTO>?> GetAllActivities([FromQuery] ActivitySegmentDTO segmentRequest)
     {
+        var orderByList = new HashSet<string>(){ "descending", "ascending" };
+
+        if (segmentRequest.OrderBy != null && !orderByList.Contains(segmentRequest.OrderBy.ToLower()))
+        {
+            throw new BadRequestException($"OrderBy 參數錯誤，可用的參數: {string.Join(", ", orderByList)}");
+        }
+
         // 如果需要存取 status Filter 直接導向 managedActivity
-        if (!segmentRequest.Status.IsNullOrEmpty())
+         if (!segmentRequest.Status.IsNullOrEmpty())
         {
             if (!User.Identity.IsAuthenticated)
             {
@@ -67,6 +74,7 @@ public class ActivityController : BaseController
             }
             return await GetManageActivities(segmentRequest);
         }
+
 
         // 獲取所有活動
         var activities = _activityService.GetAllActivitiesIncludeAll();
@@ -376,7 +384,6 @@ public class ActivityController : BaseController
             Tags = tagsDTO
         };
     }
-
 
     /// <summary>
     /// 取得熱門活動清單
