@@ -364,9 +364,10 @@ public class ActivityController : BaseController
             .Where(x => x != null)
             .SelectMany(a => a.Tags)
             .Distinct()
-            .Select(t => t.Id);
+            .Select(t => t.Id)
+            .ToList();
 
-        var tags = _tagService.GetAll(t => t.UserVoteTagInActivity, t => t.Activities).Where(t => tagIds.Contains(t.Id));
+        var tags = _tagService.GetAll(t => t.UserVoteTagInActivity, t => t.Activities).Where(t => tagIds.Contains(t.Id)).ToList();
         var tagsDTO = _mapper.Map<IEnumerable<TagDTO>>(tags);
 
         return new ActivityFilterDTO
