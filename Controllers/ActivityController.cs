@@ -14,6 +14,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using NuGet.Configuration;
 using System.Globalization;
+using System.Linq;
 using System.Linq.Expressions;
 
 namespace ActiverWebAPI.Controllers;
@@ -749,6 +750,13 @@ public class ActivityController : BaseController
         response.SearchData = commentDTOList;
         response.TotalPage = (totalCount / request.CountPerPage) + 1;
         response.TotalData = totalCount;
+
+        // 加入使用者的留言
+        if (User.Identity.IsAuthenticated)
+        {
+            var userId = (Guid?)ViewData["UserId"] ?? Guid.Empty;
+            response.UserComment = commentDTOList.FirstOrDefault(c => c.UserId == userId);
+        }
 
         return Ok(response);
     }

@@ -80,5 +80,6 @@ public class ActivityCommentRequestDTO : SegmentsRequestBaseDTO
 public class ActivityCommentResponseDTO : SegmentsResponseBaseDTO<CommentDTO>
 {
     public Guid ActivityId { get; set; }
-    public string SortBy { get; set; }
+    public string? SortBy { get; set; } = "CreatedAt";
+    public CommentDTO? UserComment { get; set; }
 }
