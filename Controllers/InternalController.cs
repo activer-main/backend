@@ -9,6 +9,7 @@ using Swashbuckle.AspNetCore.Annotations;
 using ActiverWebAPI.Models.DBEntity;
 using Microsoft.IdentityModel.Tokens;
 using ActiverWebAPI.Services.Filters;
+using ActiverWebAPI.Exceptions;
 
 namespace ActiverWebAPI.Controllers;
 
@@ -19,7 +20,6 @@ namespace ActiverWebAPI.Controllers;
 public class InternalController : BaseController
 {
     private readonly ActivityService _activityService;
-    private readonly UserService _userService;
     private readonly ProfessionService _professionService;
     private readonly CountyService _countyService;
     private readonly TagService _tagService;
@@ -37,7 +37,6 @@ public class InternalController : BaseController
     )
     {
         _activityService = activityService;
-        _userService = userService;
         _countyService = countyService;
         _tagService = tagService;
         _locationService = locationService;
@@ -253,4 +252,16 @@ public class InternalController : BaseController
         return Ok();
     }
 
+    [SwaggerOperation(
+         Summary = "Test For Dev"
+     )]
+    [HttpGet("TestMiddleware")]
+    [Produces("application/json")]
+    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(string))]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> TestMiddelware()
+    {
+        throw new UserNotFoundException();
+        return Ok();
+    }
 }
