@@ -10,6 +10,8 @@ using ActiverWebAPI.Models.DBEntity;
 using Microsoft.IdentityModel.Tokens;
 using ActiverWebAPI.Services.Filters;
 using ActiverWebAPI.Exceptions;
+using ActiverWebAPI.Utils;
+using System.Linq.Expressions;
 
 namespace ActiverWebAPI.Controllers;
 
@@ -20,14 +22,17 @@ namespace ActiverWebAPI.Controllers;
 public class InternalController : BaseController
 {
     private readonly ActivityService _activityService;
+    private readonly ActivityFilterValidationService _activityFilterValidationService;
     private readonly ProfessionService _professionService;
     private readonly CountyService _countyService;
     private readonly TagService _tagService;
     private readonly LocationService _locationService;
     private readonly IMapper _mapper;
+    private readonly UserService _userService;
 
     public InternalController(
         ActivityService activityService,
+        ActivityFilterValidationService activityFilterValidationService,
         UserService userService,
         ProfessionService professionService,
         CountyService countyService,
@@ -37,11 +42,170 @@ public class InternalController : BaseController
     )
     {
         _activityService = activityService;
+        _activityFilterValidationService = activityFilterValidationService;
         _countyService = countyService;
         _tagService = tagService;
         _locationService = locationService;
         _professionService = professionService;
+        _userService = userService;
         _mapper = mapper;
+    }
+
+
+    /// <summary>
+    /// 使用者資訊清單
+    /// </summary>
+    /// <remarks>
+    /// 此端點需要使用者具備管理員或內部使用者角色才能存取
+    /// </remarks>
+    /// <returns>使用者資訊清單。</returns>
+    [SwaggerOperation(
+        Summary = "Get all users for internal users only"
+    )]
+    [HttpGet("user")]
+    [Produces("application/json")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public IEnumerable<UserInfoDTO> Get()
+    {
+        var users = _userService.GetAllUsersIncludeAll();
+        var usersInfo = _mapper.Map<List<UserInfoDTO>>(users);
+        return usersInfo;
+    }
+
+    [SwaggerOperation(
+        Summary = "Get specific user for internal users only"
+    )]
+    [HttpGet("user/{userId}")]
+    public async Task<ActionResult<UserInfoDTO>> GetUser(Guid userId)
+    {
+        var user = _userService.GetUserByIdIncludeAll(userId);
+
+        if (user == null)
+        {
+            throw new UserNotFoundException();
+        }
+
+        var userInfoDTO = _mapper.Map<UserInfoDTO>(user);
+        return Ok(userInfoDTO);
+    }
+
+    [SwaggerOperation(
+         Summary = "Get user's managed activities for internal users only"
+     )]
+    [HttpGet("user/manage")]
+    public async Task<ActionResult<ActivitySegmentResponseDTO>> GetUserManageActivity([FromQuery] Guid userId, [FromQuery] ActivitySegmentDTO segmentRequest)
+    {
+        var user = await _userService.GetByIdAsync(userId,
+            u => u.ActivityStatus
+        );
+
+        // 檢查 OrderBy
+        CheckOrderByValue(segmentRequest.OrderBy);
+
+        // 確認 SortBy 為可以接受的值
+        _activityFilterValidationService.ValidateSortBy(segmentRequest.SortBy);
+
+        // 確認 Status 為可以接受的值
+        _activityFilterValidationService.ValidateStatus(segmentRequest.Status);
+
+        // 確認 User 存在
+        if (user == null)
+        {
+            throw new UserNotFoundException();
+        }
+
+        // 找出每個 activity 的 status
+        var activityStatus = await _userService.GetUserActivityStatusAsync(user.Id);
+
+        // 找出所有活動 並 filter status 
+        var activityList = activityStatus.Keys.Select(_activityService.GetActivityIncludeAllById)
+            .AsQueryable()
+            .Where(x => x != null)
+            .Where(a =>
+                segmentRequest.Status.IsNullOrEmpty() || segmentRequest.Status.Contains(activityStatus[a.Id].Key)
+            );
+
+        // 解決 null 的問題
+        segmentRequest.SortBy ??= "CreatedAt";
+        segmentRequest.OrderBy ??= "Descending";
+
+        // 初始化 SortBy 列表
+        var properties = new List<Expression<Func<Activity, object>>>() { };
+        var sortBy = segmentRequest.SortBy;
+
+        // Tag filter
+        if (!segmentRequest.Tags.IsNullOrEmpty())
+        {
+            // 獲取所有 tag Id
+            var tagIds = segmentRequest.Tags
+                .Select(_tagService.GetTagByText)
+                .Where(x => x != null)
+                .Select(t => t.Id)
+                .AsEnumerable();
+
+            // Tag Filter (至少要有一個 tag 符合)
+            if (tagIds != null)
+            {
+                activityList = activityList
+                    .Where(a => a.Tags.Any(t => tagIds.Contains(t.Id)));
+            }
+
+            // 加入 Tag 排序
+            properties.Add(a => a.Tags.Count(t => tagIds.Contains(t.Id)));
+        }
+
+        // 加入 sortBy 列表
+        switch (sortBy)
+        {
+            case "Trend":
+                properties.Add(a => a.ActivityClickedCount);
+                break;
+            case "AddTime":
+                properties.Add(a => a.CreatedAt);
+                break;
+            default:
+                var parameter = Expression.Parameter(typeof(Activity), "a");
+                var property = Expression.Property(parameter, sortBy);
+                var cast = Expression.Convert(property, typeof(object));
+                var lambda = Expression.Lambda<Func<Activity, object>>(cast, parameter);
+                properties.Add(lambda);
+                break;
+        }
+
+        // 計算總頁數
+        var totalCount = activityList.Count();
+        var totalPage = (totalCount / segmentRequest.CountPerPage) + 1;
+
+        // 檢查 頁數 < 總頁數
+        if (segmentRequest.Page > totalPage)
+        {
+            throw new BadRequestException($"請求的頁數({segmentRequest.Page})大於總頁數({totalPage})");
+        }
+
+        // 分頁 & 排序
+        var orderedActivityList = DataHelper.GetSortedAndPagedData(activityList, properties, segmentRequest.OrderBy, segmentRequest.Page, segmentRequest.CountPerPage);
+
+        // 轉換型態
+        var activityDTOList = _mapper.Map<List<ActivityDTO>>(orderedActivityList);
+
+        // 根據使用者更改 Status
+        activityDTOList.ForEach(x =>
+        {
+            if (activityStatus.ContainsKey(x.Id))
+            {
+                x.Status = activityStatus[x.Id].Key;
+                x.AddTime = activityStatus[x.Id].Value;
+            }
+        });
+
+        var SegmentResponse = _mapper.Map<ActivitySegmentResponseDTO>(segmentRequest);
+
+        SegmentResponse.SearchData = activityDTOList;
+        SegmentResponse.TotalPage = (totalCount / segmentRequest.CountPerPage) + 1;
+        SegmentResponse.TotalData = totalCount;
+
+        return Ok(SegmentResponse);
     }
 
     /// <summary>
@@ -252,6 +416,7 @@ public class InternalController : BaseController
         return Ok();
     }
 
+
     [SwaggerOperation(
          Summary = "Test For Dev"
      )]
@@ -263,5 +428,15 @@ public class InternalController : BaseController
     {
         throw new UserNotFoundException();
         return Ok();
+    }
+
+    private static void CheckOrderByValue(string? orderBy)
+    {
+        var orderByList = new HashSet<string>() { "descending", "ascending" };
+
+        if (orderBy != null && !orderByList.Contains(orderBy.ToLower()))
+        {
+            throw new BadRequestException($"OrderBy 參數錯誤，可用的參數: {string.Join(", ", orderByList)}");
+        }
     }
 }

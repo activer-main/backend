@@ -1,4 +1,5 @@
 ﻿using ActiverWebAPI.Models.DBEntity;
+using Newtonsoft.Json;
 
 namespace ActiverWebAPI.Models.DTO;
 

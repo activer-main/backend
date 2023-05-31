@@ -62,29 +62,9 @@ public class UserController : BaseController
     }
 
     /// <summary>
-    /// 使用者資訊清單
-    /// </summary>
-    /// <remarks>
-    /// 此端點需要使用者具備管理員或內部使用者角色才能存取
-    /// </remarks>
-    /// <returns>使用者資訊清單。</returns>
-    [Authorize(Roles = "Admin, InternalUser")]
-    [HttpGet("all")]
-    [Produces("application/json")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public IEnumerable<UserInfoDTO> Get()
-    {
-        var users = _userService.GetAll();
-        var usersInfo = _mapper.Map<List<UserInfoDTO>>(users);
-        return usersInfo;
-    }
-
-    /// <summary>
     /// 取得當前已登入的使用者資訊
     /// </summary>
     /// <returns>使用者資訊</returns>
-    [TypeFilter(typeof(PasswordChangedAuthorizationFilter))]
     [HttpGet]
     [ProducesResponseType(typeof(UserDTO), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]

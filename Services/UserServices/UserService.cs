@@ -55,6 +55,29 @@ public class UserService : GenericService<User, Guid>
         return _configuration["Server:Domain"] + $"/api/user/avatar/{user.Avatar.Id}";
     }
 
+    public IQueryable<User>? GetAllUsersIncludeAll()
+    {
+        var users = _userRepository.Query()
+            .Include(ac => ac.Avatar)
+            .Include(ac => ac.County)
+            .Include(ac => ac.Area)
+            .Include(ac => ac.Professions);
+
+        return users;
+    }
+
+    public User? GetUserByIdIncludeAll(Guid userId)
+    {
+        var user = _userRepository.Query()
+            .Include(ac => ac.Avatar)
+            .Include(ac => ac.County)
+            .Include(ac => ac.Area)
+            .Include(ac => ac.Professions)
+            .FirstOrDefault(u => u.Id == userId);
+
+        return user;
+    }
+
     public async Task<IEnumerable<SearchHistory>> GetSearchHistory(Guid userId)
     {
         var query = _userRepository.Query()
