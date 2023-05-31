@@ -297,7 +297,7 @@ public class InternalController : BaseController
     [HttpDelete("activity")]
     public async Task<IActionResult> DeleteActivities([FromQuery] Guid[]? ids)
     {
-        if (ids == null)
+        if (ids == null || ids.Length == 0)
         {
             var activities = _activityService.GetAll();
             _activityService.RemoveRange(activities);

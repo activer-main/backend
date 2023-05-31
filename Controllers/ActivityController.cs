@@ -75,11 +75,6 @@ public class ActivityController : BaseController
         // 獲取所有活動
         var activities = _activityService.GetAllActivitiesIncludeAll();
 
-        if (activities.IsNullOrEmpty())
-        {
-            return NoContent();
-        }
-
         // 給 SortBy 與 OrderBy 預設值
         segmentRequest.SortBy ??= "CreateAt";
         segmentRequest.OrderBy ??= "descending";
