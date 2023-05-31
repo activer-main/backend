@@ -63,7 +63,7 @@ public class ActivityController : BaseController
         CheckOrderByValue(segmentRequest.OrderBy);
 
         // 如果需要存取 status Filter 直接導向 managedActivity
-         if (!segmentRequest.Status.IsNullOrEmpty())
+        if (!segmentRequest.Status.IsNullOrEmpty())
         {
             if (!User.Identity.IsAuthenticated)
             {
@@ -72,9 +72,13 @@ public class ActivityController : BaseController
             return await GetManageActivities(segmentRequest);
         }
 
-
         // 獲取所有活動
         var activities = _activityService.GetAllActivitiesIncludeAll();
+
+        if (activities.IsNullOrEmpty())
+        {
+            return NoContent();
+        }
 
         // 給 SortBy 與 OrderBy 預設值
         segmentRequest.SortBy ??= "CreateAt";
