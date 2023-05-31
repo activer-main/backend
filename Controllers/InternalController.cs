@@ -439,4 +439,25 @@ public class InternalController : BaseController
             throw new BadRequestException($"OrderBy 參數錯誤，可用的參數: {string.Join(", ", orderByList)}");
         }
     }
+
+    [HttpPost("tag")]
+    public async Task<IActionResult> PostTags([FromBody] IEnumerable<TagPostDTO> tagDTOs)
+    {
+        foreach (var tagDTO in tagDTOs)
+        {
+            var tag = await _tagService.GetTagByTextAsync(tagDTO.Text);
+
+            // 新增 Tag
+            if (tag == null)
+            {
+                var tagToSave = _mapper.Map<Tag>(tagDTO);
+                _tagService.Add(tagToSave);
+            }
+        }
+
+        _tagService.SaveChangesAsync();
+
+        return Ok();
+    }
+
 }

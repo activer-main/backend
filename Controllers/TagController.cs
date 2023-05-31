@@ -8,6 +8,7 @@ using Microsoft.IdentityModel.Tokens;
 
 namespace ActiverWebAPI.Controllers;
 
+[Authorize]
 [ApiController]
 [Route("api/[controller]")]
 public class TagController : BaseController
