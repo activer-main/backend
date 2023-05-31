@@ -58,12 +58,8 @@ public class ActivityController : BaseController
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<ActionResult<ActivitySegmentResponseDTO>?> GetAllActivities([FromQuery] ActivitySegmentDTO segmentRequest)
     {
-        var orderByList = new HashSet<string>(){ "descending", "ascending" };
-
-        if (segmentRequest.OrderBy != null && !orderByList.Contains(segmentRequest.OrderBy.ToLower()))
-        {
-            throw new BadRequestException($"OrderBy 參數錯誤，可用的參數: {string.Join(", ", orderByList)}");
-        }
+        // 檢查 OrderBy
+        CheckOrderByValue(segmentRequest.OrderBy);
 
         // 如果需要存取 status Filter 直接導向 managedActivity
          if (!segmentRequest.Status.IsNullOrEmpty())
@@ -241,6 +237,9 @@ public class ActivityController : BaseController
         var user = await _userService.GetByIdAsync(userId,
             u => u.ActivityStatus
         );
+
+        // 檢查 OrderBy
+        CheckOrderByValue(segmentRequest.OrderBy);
 
         // 確認 SortBy 為可以接受的值
         _activityFilterValidationService.ValidateSortBy(segmentRequest.SortBy);
@@ -531,6 +530,9 @@ public class ActivityController : BaseController
     [HttpGet("search")]
     public async Task<ActionResult<ActivitySearchResponseDTO>> GetSearchActivity([FromQuery] ActivitySearchRequestDTO request)
     {
+        // 檢查 OrderBy
+        CheckOrderByValue(request.OrderBy);
+
         var activities = _activityService.GetAllActivitiesIncludeAll();
 
         if (request.Keyword.IsNullOrEmpty() && request.Date.IsNullOrEmpty() && request.Tags.IsNullOrEmpty())
@@ -783,6 +785,17 @@ public class ActivityController : BaseController
 
         return Ok();
     }
+
+    private static void CheckOrderByValue(string? orderBy)
+    {
+        var orderByList = new HashSet<string>() { "descending", "ascending" };
+
+        if (orderBy != null && !orderByList.Contains(orderBy.ToLower()))
+        {
+            throw new BadRequestException($"OrderBy 參數錯誤，可用的參數: {string.Join(", ", orderByList)}");
+        }
+    }
+
 }
 
 

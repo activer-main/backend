@@ -6,7 +6,7 @@ public class ActivityFilterValidationService
 {
     private readonly HashSet<string> _allowSortBySet = new() { "Trend", "CreatedAt", "AddTime" };
     private readonly HashSet<string> _allowStatusSet = new() { "願望", "已註冊", "已完成" };
-    public void ValidateSortBy(string sortBy)
+    public void ValidateSortBy(string? sortBy)
     {
         if (!string.IsNullOrEmpty(sortBy) && !_allowSortBySet.Contains(sortBy))
         {
@@ -14,9 +14,9 @@ public class ActivityFilterValidationService
         }
     }
 
-    public void ValidateStatus(string status)
+    public void ValidateStatus(string? status)
     {
-        if (!_allowStatusSet.Contains(status))
+        if (status == null || !_allowStatusSet.Contains(status))
         {
             throw new BadRequestException($"活動狀態: '{status}' 不在可接受的狀態列表: '{string.Join(", ", _allowStatusSet)}'");
         }
