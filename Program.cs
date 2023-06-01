@@ -58,6 +58,7 @@ builder.Services.AddSwaggerGen(c =>
 string ActiverUser = System.Environment.GetEnvironmentVariable("ActiverWebApiUser");
 string connectionString;
 
+Console.WriteLine($"ActiverWebApiUser: {ActiverUser}");
 if (ActiverUser == "Danny")
 {
     connectionString = builder.Configuration.GetConnectionString("DannyConnection");
