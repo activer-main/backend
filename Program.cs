@@ -74,7 +74,7 @@ else if (ActiverUser == "Local")
 }
 
 
-builder.Services.AddDbContext<ActiverDbContext>(options => options.UseSqlServer());
+builder.Services.AddDbContext<ActiverDbContext>(options => options.UseSqlServer(connectionString));
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 // Services
 builder.Services.AddScoped(typeof(IGenericService<,>), typeof(GenericService<,>));
