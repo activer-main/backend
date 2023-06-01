@@ -20,7 +20,7 @@ RUN apt-get install -y dotnet-runtime-7.0
 RUN dotnet tool install --global dotnet-ef
 
 # expose port
-EXPOSE 8080
+EXPOSE 5070
 COPY . /backend
 WORKDIR /backend
 
