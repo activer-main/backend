@@ -53,7 +53,28 @@ builder.Services.AddSwaggerGen(c =>
     c.EnableAnnotations();
 });
 
-builder.Services.AddDbContext<ActiverDbContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("DevConnection")));
+
+// Get Environmental variable to decide connection string
+string ActiverUser = System.Environment.GetEnvironmentVariable("ActiverWebApiUser");
+string connectionString;
+
+if (ActiverUser == "Danny")
+{
+    connectionString = builder.Configuration.GetConnectionString("DannyConnection");
+}
+else if (ActiverUser == "Local")
+{
+    connectionString = builder.Configuration.GetConnectionString("LocalConnection");
+}else if (ActiverUser == "Admin")
+{
+    connectionString = builder.Configuration.GetConnectionString("AdminConnection");
+}else
+{
+    connectionString = builder.Configuration.GetConnectionString("LocalConnection");
+}
+
+
+builder.Services.AddDbContext<ActiverDbContext>(options => options.UseSqlServer());
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 // Services
 builder.Services.AddScoped(typeof(IGenericService<,>), typeof(GenericService<,>));
