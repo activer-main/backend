@@ -74,6 +74,8 @@ else if (ActiverUser == "Local")
     connectionString = builder.Configuration.GetConnectionString("LocalConnection");
 }
 
+Console.WriteLine($"ConnectionString: {connectionString}");
+
 
 builder.Services.AddDbContext<ActiverDbContext>(options => options.UseSqlServer(connectionString));
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
