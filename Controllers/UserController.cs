@@ -8,8 +8,10 @@ using ActiverWebAPI.Services.Middlewares;
 using ActiverWebAPI.Services.UserServices;
 using ActiverWebAPI.Utils;
 using AutoMapper;
+using Hangfire;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Hosting.Internal;
 using Microsoft.Identity.Client;
 using Microsoft.IdentityModel.Tokens;
 using System.Globalization;
@@ -32,6 +34,7 @@ public class UserController : BaseController
     private readonly IMapper _mapper;
     private readonly IWebHostEnvironment _env;
     private readonly IConfiguration _configuration;
+    private readonly IBackgroundJobClient _backgroundJobClient;
     public UserController(UserService userService,
         IMapper mapper,
         IWebHostEnvironment env,
@@ -40,7 +43,8 @@ public class UserController : BaseController
         IEmailService emailService,
         ProfessionService professionService,
         CountyService countyService,
-        IConfiguration configuration)
+        IConfiguration configuration,
+        IBackgroundJobClient backgroundJobClient)
     {
         _userService = userService;
         _mapper = mapper;
@@ -51,6 +55,7 @@ public class UserController : BaseController
         _professionService = professionService;
         _countyService = countyService;
         _configuration = configuration;
+        _backgroundJobClient = backgroundJobClient;
     }
 
     [AllowAnonymous]
@@ -287,7 +292,10 @@ public class UserController : BaseController
         var message = $"<h1>您的驗證碼是: {token} ，此驗證碼於10分鐘後失效</h1>";
 
         await _userService.SaveChangesAsync();
-        await _emailService.SendEmailAsync(user.Email, subject, message);
+
+        // 把發送郵件加入排程
+        _backgroundJobClient.Enqueue(() => _emailService.SendEmailAsync(user.Email, subject, message));
+        _backgroundJobClient.Enqueue(() => Console.WriteLine($"Email SENT: {user.Email}"));
 
         var userInfoDTO = _mapper.Map<UserInfoDTO>(user);
         var TokenDTO = _tokenService.GenerateToken(user);
@@ -555,8 +563,12 @@ public class UserController : BaseController
         var message = $"<h1>您的驗證碼是: {token} ，此驗證碼於10分鐘後失效</h1>";
 
         await _userService.SaveChangesAsync();
-        await _emailService.SendEmailAsync(user.Email, subject, message);
-        return Ok();
+
+        // 把發送郵件加入排程
+        _backgroundJobClient.Enqueue(() => _emailService.SendEmailAsync(user.Email, subject, message));
+        _backgroundJobClient.Enqueue(() => Console.WriteLine($"Email SENT: {user.Email}"));
+
+        return Accepted();
     }
 
     // 注意 Timing Attack

@@ -14,6 +14,7 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Swashbuckle.AspNetCore.SwaggerUI;
 using System.Text;
+using Hangfire;
 using static ActiverWebAPI.Dev.Swagger.Filter;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -53,11 +54,17 @@ builder.Services.AddSwaggerGen(c =>
     c.EnableAnnotations();
 });
 
+// 加入 hangfire 並使用記憶體保存排程
+builder.Services.AddHangfire(config => {
+    config.UseInMemoryStorage();
+});
+builder.Services.AddHangfireServer();
 
 // Get Environmental variable to decide connection string
 string ActiverUser = System.Environment.GetEnvironmentVariable("ActiverWebApiUser");
 string connectionString;
 
+// 設定 DEV 連接字串
 Console.WriteLine($"ActiverWebApiUser: {ActiverUser}");
 if (ActiverUser == "Danny")
 {
@@ -73,7 +80,6 @@ else if (ActiverUser == "Local")
 {
     connectionString = builder.Configuration.GetConnectionString("LocalConnection");
 }
-
 Console.WriteLine($"ConnectionString: {connectionString}");
 
 
@@ -93,7 +99,6 @@ builder.Services.AddScoped<ActivityService>();
 builder.Services.AddScoped<TokenService>();
 builder.Services.AddSingleton<IPasswordHasher, PasswordHasher>();
 builder.Services.AddScoped<IEmailService, EmailService>();
-//builder.Services.AddScoped<ErrorHandlingMiddleware>();
 builder.Services.AddScoped<ApiResponseMiddleware>();
 // CORS
 builder.Services.AddCors(options =>
@@ -145,9 +150,12 @@ if (app.Environment.IsDevelopment())
     });
 }
 
+
+// 使用 hangfire 內建的儀表板
+app.UseHangfireDashboard();
+
 // Middlewares
-//app.UseMiddleware<ApiResponseMiddleware>();
-//app.UseMiddleware<ErrorHandlingMiddleware>();
+app.UseMiddleware<ApiResponseMiddleware>();
 
 app.UseCors("DevCorsPolicy");
 app.UseStaticFiles();

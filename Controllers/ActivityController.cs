@@ -395,13 +395,15 @@ public class ActivityController : BaseController
     [Produces("application/json")]
     public async Task<ActionResult<SegmentsResponseBaseDTO<ActivityDTO>>> GetTrendActivities([FromQuery] SegmentsRequestBaseDTO segmentRequest)
     {
+        CheckOrderByValue(segmentRequest.OrderBy);
+
         var activityList = _activityService.GetAllActivitiesIncludeAll();
         var totalCount = activityList.Count();
         var totalPage = (totalCount / segmentRequest.CountPerPage) + 1;
 
         if (segmentRequest.Page > totalPage)
         {
-            throw new BadRequestException($"請求的頁數({segmentRequest.Page})大於總頁數({totalPage})");
+            throw new BadRequestException($"請求的頁數 {segmentRequest.Page} 大於總頁數 {totalPage} ");
         }
 
         segmentRequest.OrderBy ??= "descending";
@@ -694,7 +696,7 @@ public class ActivityController : BaseController
 
         if (activity == null)
         {
-            return BadRequest("活動不存在");
+            throw new BadRequestException("活動不存在");
         }
 
         var comments = activity.Comments;

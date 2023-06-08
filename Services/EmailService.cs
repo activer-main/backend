@@ -24,7 +24,7 @@ public class EmailService : IEmailService
         using var client = new SmtpClient();
         await client.ConnectAsync(_configuration["Email:SmtpServer"], int.Parse(_configuration["Email:Port"]), SecureSocketOptions.StartTls);
         await client.AuthenticateAsync(_configuration["Email:Username"], _configuration["Email:Password"]);
-        await client.SendAsync(emailMessage);
+        var result = await client.SendAsync(emailMessage);
         await client.DisconnectAsync(true);
     }
 }

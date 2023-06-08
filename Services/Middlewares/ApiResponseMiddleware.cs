@@ -1,11 +1,15 @@
 ﻿using ActiverWebAPI.Exceptions;
+using Microsoft.AspNetCore.Components.Web;
+using Microsoft.IdentityModel.Tokens;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using NuGet.Protocol;
 using System.IO;
 using System.Net;
+using System.Runtime.InteropServices.JavaScript;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 
 namespace ActiverWebAPI.Services.Middlewares;
 
@@ -32,8 +36,16 @@ public class ApiResponseMiddleware : IMiddleware
                 await HandleException(context, memStream, ex);
             }
 
-            // 在回應發送之後進行統一格式化處理
-            await FormatResponseAsync(context, memStream);
+            // 找出 content type
+            string contentType = context.Response.ContentType ?? "";
+            bool isFileResponse = !contentType.StartsWith("application/problem+json") && !contentType.StartsWith("application/json") && contentType.StartsWith("application/") || contentType.StartsWith("image/") || contentType.StartsWith("audio/") || contentType.StartsWith("video/");
+
+            // 如果不是 檔案 才進行 parse
+            if (!isFileResponse)
+            {
+                // 在回應發送之後進行統一格式化處理
+                await FormatResponseAsync(context, memStream);
+            }
 
             memStream.Position = 0;
 
@@ -59,6 +71,8 @@ public class ApiResponseMiddleware : IMiddleware
 
         var parsedBody = ParseApiResponse(responseBody, context.Response.StatusCode, message);
 
+        context.Response.ContentType = "application/json";
+
         // 清空原本的資料
         memoryStream.SetLength(0);
 
@@ -66,47 +80,90 @@ public class ApiResponseMiddleware : IMiddleware
         await memoryStream.WriteAsync(Encoding.UTF8.GetBytes(parsedBody));
     }
 
-    private string ParseApiResponse(string originalBody, int statusCode, string? message)
+    private static string ParseApiResponse(string originalBody, int statusCode, string? message)
     {
-        // 在這裡根據你的需求，對原始回應內容進行解析和轉換成相同格式的邏輯
-        var jsonObject = JsonConvert.DeserializeObject<JObject>(originalBody);
 
-        // 分開處理回傳型態
-        if (statusCode == (int) HttpStatusCode.BadRequest)
+        JToken? jsonToken;
+        try
         {
-            jsonObject["Message"] = jsonObject["title"];
-            jsonObject["Errors"] = jsonObject["errors"];
-
-            // 刪除不必要的屬性
-            jsonObject.Remove("errors");
-            jsonObject.Remove("type");
-            jsonObject.Remove("title");
-            jsonObject.Remove("status");
-            jsonObject.Remove("traceId");
+            jsonToken = JToken.Parse(originalBody);
+        }
+        catch (JsonReaderException)
+        {
+            jsonToken = null;
         }
 
         var isSuccess = statusCode >= 200 && statusCode < 300;
 
-        // 假設你要將回應轉換成一個包含成功或錯誤訊息的 JSON 物件
+        // 不是 json 物件
+        if (jsonToken == null)
+        {
+            var rawBody = originalBody.IsNullOrEmpty() ? null : originalBody;
+
+            var responseRawObject = new
+            {
+                Success = isSuccess,
+                StatusCode = statusCode,
+                Message = message ?? GetDefaultMessage(statusCode),
+                Data = isSuccess ? rawBody : null,
+                Error = !isSuccess ? rawBody : null
+            };
+
+            return JsonConvert.SerializeObject(responseRawObject);
+        }
+
+        // 是 json 物件
+        if (jsonToken.Type == JTokenType.Object)
+        {
+            // 轉換成 jsonObject
+            JObject jsonObject = (JObject)jsonToken;
+
+            // Bad request
+            if (statusCode == (int)HttpStatusCode.BadRequest)
+            {
+                jsonObject["Exception"] = jsonObject["InnerException"];
+
+                if (jsonObject["errors"] != null && jsonObject["errors"] is JObject fieldObject && jsonObject["title"] != null && jsonObject["title"].ToString() == "One or more validation errors occurred.")
+                {
+                    var errorFields = string.Join(", ", fieldObject.Properties().Select(p => $"欄位 {p.Name} 不能為空"));
+                    
+                    jsonObject["Exception"] = errorFields;
+                }
+
+                // 刪除不必要的屬性
+                jsonObject.Remove("Message");
+                jsonObject.Remove("errors");
+                jsonObject.Remove("InnerException");
+                jsonObject.Remove("type");
+                jsonObject.Remove("title");
+                jsonObject.Remove("status");
+                jsonObject.Remove("traceId");
+            }
+
+            // 寫回 JsonToken
+            jsonToken = jsonObject;
+        }
+
         var responseObject = new
         {
             Success = isSuccess,
             StatusCode = statusCode,
             Message = message ?? GetDefaultMessage(statusCode),
-            Data = isSuccess ? jsonObject : null, // 或是解析後的資料
-            Error = !isSuccess ? jsonObject : null
+            Data = isSuccess ? jsonToken : null,
+            Error = !isSuccess ? jsonToken : null
         };
-            
+
         return JsonConvert.SerializeObject(responseObject);
     }
 
-    private string GetDefaultMessage(int statusCode)
+    private static string GetDefaultMessage(int statusCode)
     {
         // 根據狀態碼返回預設訊息
         return statusCode switch
         {
             200 => "OK",
-            201 => "請求已接受",
+            201 => "資源已創建",
+            202 => "請求已接受",
             400 => "請求無效",
             401 => "驗證錯誤",
             404 => "已被刪除、移動或從未存在",
@@ -118,6 +175,7 @@ public class ApiResponseMiddleware : IMiddleware
     {
         var code = HttpStatusCode.InternalServerError; // 預設狀態碼
         var message = "伺服器發生內部錯誤";
+        var excpetion = exception.Message;
 
         if (exception is UnauthorizedException)
         {
@@ -143,7 +201,12 @@ public class ApiResponseMiddleware : IMiddleware
             code = HttpStatusCode.BadRequest; // 400
         }
 
-        var jsonObject = new { Message = message, InnerException = exception.Message };
+        else if (exception is SecurityTokenValidationException)
+        {
+            excpetion = "JWT token 驗證失敗";
+        }
+
+        var jsonObject = new { Message = message, InnerException = excpetion };
         var result = JsonConvert.SerializeObject(jsonObject);
         context.Response.ContentType = "application/json";
         context.Response.StatusCode = (int)code;
