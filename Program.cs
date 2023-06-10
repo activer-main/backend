@@ -16,10 +16,17 @@ using Swashbuckle.AspNetCore.SwaggerUI;
 using System.Text;
 using static ActiverWebAPI.Dev.Swagger.Filter;
 
+using System.Net.Http;
+
+// signup HttpClient service by chatgpt 
+void ConfigureServices(IServiceCollection services)
+{
+    services.AddHttpClient();
+}
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-
 builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
@@ -48,7 +55,7 @@ builder.Services.AddSwaggerGen(c =>
             new string[] {}
         }
     });
-    // ±N©Ò¦³«D¥i¬°ªÅªº string ÄÝ©Ê³]¸m¬°¥²¶ñ
+    // ï¿½Nï¿½Ò¦ï¿½ï¿½Dï¿½iï¿½ï¿½ï¿½Åªï¿½ string ï¿½Ý©Ê³]ï¿½mï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
     c.SchemaFilter<NonNullStringPropertiesSchemaFilter>();
     c.EnableAnnotations();
 });
@@ -138,8 +145,8 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI(c =>
     {
         //c.SwaggerEndpoint("/swagger/v1/swagger.json", "API v1");
-        c.InjectStylesheet("/swagger-ui/SwaggerDark.css"); // ¤Þ¤Jdark¥DÃD¼Ë¦¡ªí
-        c.DocExpansion(DocExpansion.None); // ³]©w¹w³]®i¶}ª¬ºA
+        c.InjectStylesheet("/swagger-ui/SwaggerDark.css"); // ï¿½Þ¤Jdarkï¿½Dï¿½Dï¿½Ë¦ï¿½ï¿½ï¿½
+        c.DocExpansion(DocExpansion.None); // ï¿½]ï¿½wï¿½wï¿½]ï¿½iï¿½}ï¿½ï¿½ï¿½A
     });
 }
 

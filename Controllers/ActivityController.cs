@@ -17,6 +17,10 @@ using System.Globalization;
 using System.Linq;
 using System.Linq.Expressions;
 
+using System;
+using System.Net.Http;
+using System.Threading.Tasks;
+
 namespace ActiverWebAPI.Controllers;
 
 [Authorize]
@@ -31,12 +35,16 @@ public class ActivityController : BaseController
     private readonly IMapper _mapper;
     private readonly ActivityFilterValidationService _activityFilterValidationService;
 
+    // 連外部連結要用的 0.0
+    private readonly HttpClient _httpClient;
+
     public ActivityController(
         ActivityService activityService,
         UserService userService,
         TagService tagService,
         IMapper mapper,
-        ActivityFilterValidationService activityFilterValidationService
+        ActivityFilterValidationService activityFilterValidationService,
+        HttpClient httpClient
     )
     {
         _activityService = activityService;
@@ -44,6 +52,7 @@ public class ActivityController : BaseController
         _tagService = tagService;
         _mapper = mapper;
         _activityFilterValidationService = activityFilterValidationService;
+        _httpClient = httpClient;
     }
 
     /// <summary>
@@ -166,6 +175,57 @@ public class ActivityController : BaseController
         return response;
     }
 
+    /// <summary>
+    /// 取得推薦活動
+    /// </summary>
+    /// <param name="userid">使用者 ID</param>
+    /// <returns>活動 DTO</returns>
+    [AllowAnonymous]
+    [HttpGet("recommend/{id}")]
+    [Produces("application/json")]
+    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ActivityDTO))]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<ActivityDTO>> GetRecommendActivity(Guid id, int numOfActivity)
+    {
+        // API response data
+        // string responseData = string.Empty;
+        // API for data analysis
+        // string externalLink = "https://activer.azurewebsites.net/api/HttpTrigger?clientId=default&userId=${id}&num=${numOfActivity}";
+
+        Guid testID = Guid.Parse("737b48ef-1739-461b-5bda-08db61ed9fd5");
+
+        var activity = await _activityService.GetActivityIncludeAllByIdAsync(testID);
+        if (activity == null)
+            throw new NotFoundException("活動不存在");
+
+        // try
+        // {
+        //     HttpResponseMessage response = await httpClient.GetAsync(externalLink);
+        //     response.EnsureSuccessStatusCode();
+
+        //     responseData = await response.Content.ReadAsStringAsync();
+        // }
+        // catch (HttpRequestException ex)
+        // {
+        //     // Handle specific HTTP request exceptions
+        //     // For example, you can log the error or display a custom error message
+        //     Console.WriteLine($"HTTP request error: {ex.Message}");
+        // }
+        // catch (Exception ex)
+        // {
+        //     // Handle general exceptions
+        //     // For example, you can log the error or display a generic error message
+        //     Console.WriteLine($"An error occurred: {ex.Message}");
+        // }
+
+
+        // 封裝活動
+        var activityDTO = _mapper.Map<ActivityDTO>(activity);
+
+        return activityDTO;
+    }
+
+    
     /// <summary>
     /// 取得活動資訊
     /// </summary>

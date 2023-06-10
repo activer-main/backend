@@ -59,14 +59,14 @@ public class InternalController : BaseController
     /// 此端點需要使用者具備管理員或內部使用者角色才能存取
     /// </remarks>
     /// <returns>使用者資訊清單。</returns>
-    [SwaggerOperation(
+    [SwaggerOperation( 
         Summary = "Get all users for internal users only"
     )]
     [HttpGet("user")]
     [Produces("application/json")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public IEnumerable<UserInfoDTO> Get()
+    public IEnumerable<UserInfoDTO> Get() 
     {
         var users = _userService.GetAllUsersIncludeAll();
         var usersInfo = _mapper.Map<List<UserInfoDTO>>(users);
