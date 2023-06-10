@@ -203,15 +203,15 @@ public class ActivityController : BaseController
                 }
             });
 
+            // Activity Status
             var user = await _userService.GetByIdAsync(userId, u => u.ActivityStatus);
 
-            if (user != null)
-            {
-                var activityStatus = user.ActivityStatus?.Select(a => new KeyValuePair<Guid, string>(a.ActivityId, a.Status)).ToDictionary(kv => kv.Key, kv => kv.Value);
-                activityDTO.Status = activityStatus.GetValueOrDefault(activityDTO.Id, null);
-            }
-        }
+            if (user == null)
+                throw new UserNotFoundException();
 
+            var activityStatus = user.ActivityStatus?.Select(a => new KeyValuePair<Guid, string>(a.ActivityId, a.Status)).ToDictionary(kv => kv.Key, kv => kv.Value);
+            activityDTO.Status = activityStatus.GetValueOrDefault(activityDTO.Id, null);
+        }
 
         return activityDTO;
     }

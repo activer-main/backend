@@ -71,7 +71,7 @@ public class UserController : BaseController
     /// </summary>
     /// <returns>使用者資訊</returns>
     [HttpGet]
-    [ProducesResponseType(typeof(UserDTO), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(UserInfoDTO), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<UserInfoDTO>> GetUser()
@@ -237,7 +237,8 @@ public class UserController : BaseController
             user => user.Avatar,
             user => user.Professions,
             user => user.County,
-            user => user.Area);
+            user => user.Area
+            );
         if (user == null)
         {
             throw new BadRequestException("帳號或密碼錯誤");
