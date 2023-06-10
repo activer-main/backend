@@ -1,0 +1,7 @@
+services:
+  webapi:
+    container_name: activer-web-api
+    hostname: activer-web-api
+    ports:
+        - 5070:5070
+  

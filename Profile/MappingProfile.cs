@@ -39,7 +39,7 @@ public class MappingProfile : Profile
             .ForMember(dest => dest.CreateAt, opt => opt.MapFrom(src => src.CreatedAt))
             .ForMember(dest => dest.Tags, opt => opt.MapFrom(src => src.Tags ?? null))
             .ForMember(dest => dest.Branches, opt => opt.MapFrom(src => src.Branches))
-            .ForMember(dest => dest.TotalUserVote, opt => opt.MapFrom(src => src.UserVoteActivities == null ? 0 : src.UserVoteActivities.Select(x => x.Vote).Aggregate((acc, item) => acc + item)));
+            .ForMember(dest => dest.TotalUserVote, opt => opt.MapFrom(src => src.UserVoteActivities == null ? 0 : src.UserVoteActivities.Select(x => x.Vote).Aggregate(0, (acc, x) => acc + x)));
         CreateMap<Branch, BranchDTO>()
             .ForMember(dest => dest.Location, opt => opt.MapFrom(src => src.Location == null ? null : src.Location.Select(x => x.Content)));
         CreateMap<BranchDate, BranchDateDTO>();
