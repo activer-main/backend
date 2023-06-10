@@ -65,6 +65,7 @@ public class User : BaseEntity, IEntity<Guid>
     public List<UserEmailVerification>? UserEmailVerifications { get; set; } = new List<UserEmailVerification>();
 
     public List<UserResetPasswordToken>? ResetPasswordTokens { get; set; } = new List<UserResetPasswordToken>();
+    public List<UserVoteActivity>? UserVoteActivities { get; set; } = new List<UserVoteActivity>();
 }
 
 public class Avatar : BaseEntity, IEntity<int>
@@ -247,4 +248,22 @@ public class UserResetPasswordToken
     [Required]
     public Guid UserId { get; set; }
     public DateTime ExpiresTime { get; set; }
+}
+
+[Index(nameof(UserId), nameof(ActivityId), IsUnique = true)]
+public class UserVoteActivity
+{
+    [Key]
+    public int Id { get; set; }
+
+    [Required]
+    public Activity Activity { get; set; }
+    public Guid ActivityId { get; set; }
+
+    [Required]
+    public User User { get; set; }
+    public Guid UserId { get; set; }
+
+    [Range(-1, 1)]
+    public int Vote { get; set; }
 }

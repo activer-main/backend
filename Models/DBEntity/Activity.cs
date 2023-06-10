@@ -31,6 +31,7 @@ public class Activity : BaseEntity, IEntity<Guid>
     public List<UserVoteTagInActivity>? UserVoteTagInActivity { get; set; }
     public List<UserActivityRecord>? UserActivityRecords { get; set; }
     public List<Comment>? Comments { get; set; }
+    public List<UserVoteActivity>? UserVoteActivities { get; set; } = new List<UserVoteActivity>();
 }
 
 public class ActivityFee : BaseEntity, IEntity<int>

@@ -795,6 +795,60 @@ public class ActivityController : BaseController
         return Ok();
     }
 
+
+    [HttpPost("vote/{id}")]
+    public async Task<IActionResult> VoteActivity(Guid id, [FromBody] VoteActivityDTO request)
+    {
+        var userId = (Guid?)ViewData["UserId"] ?? Guid.Empty;
+        var user = await _userService.GetByIdAsync(userId, u => u.UserVoteActivities) ?? throw new UserNotFoundException();
+
+        HashSet<int> voteOptions = new HashSet<int> { -1, 0, 1 };
+
+        if (!voteOptions.Contains(request.UserVote))
+        {
+            throw new BadRequestException($"vote的值不在接受的範圍內, 可接受的值: {String.Join(", ", request.UserVote)}");
+        }
+
+        // 沒有任何投票存在
+        if (user.UserVoteActivities == null)
+        {
+            user.UserVoteActivities = new List<UserVoteActivity> { };
+            user.UserVoteActivities.Add(
+                new UserVoteActivity
+                {
+                    Vote = request.UserVote,
+                    ActivityId = id
+                }
+                );
+            _userService.Update(user);
+            await _userService.SaveChangesAsync();
+
+            return Ok();
+        }
+
+        // 指定的活動投票不存在
+        var existVote = user.UserVoteActivities.FirstOrDefault(x => x.ActivityId == id);
+        if (existVote == null)
+        {
+            user.UserVoteActivities.Add(
+                new UserVoteActivity
+                {
+                    Vote = request.UserVote,
+                    ActivityId = id
+                }
+                );
+            _userService.Update(user);
+            await _userService.SaveChangesAsync();
+            return Ok();
+        }
+
+        existVote.Vote = request.UserVote;
+        _userService.Update(user);
+        await _userService.SaveChangesAsync();
+        return Ok();
+    }
+
+    /// INTERNAL FUNCTIONS
     private static void CheckOrderByValue(string? orderBy)
     {
         var orderByList = new HashSet<string>() { "descending", "ascending" };

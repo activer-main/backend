@@ -1,4 +1,5 @@
 ﻿using ActiverWebAPI.Models.DBEntity;
+using System.ComponentModel.DataAnnotations;
 
 namespace ActiverWebAPI.Models.DTO;
 
@@ -120,4 +121,10 @@ public class CommentPostDTO
     public Guid ActivityId { get; set; }
     public float Rate { get; set; } = 0;
     public string Content { get; set; }
+}
+
+public class VoteActivityDTO
+{
+    [Range(-1, 1)]
+    public int UserVote { get; set; }
 }
