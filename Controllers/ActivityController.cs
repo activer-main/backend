@@ -145,16 +145,8 @@ public class ActivityController : BaseController
         if (User.Identity.IsAuthenticated)
         {
             var userId = (Guid?)ViewData["UserId"] ?? Guid.Empty;
-            var activityStatus = await _userService.GetUserActivityStatusAsync(userId);
-            if (activityStatus != null)
-            {
-                // 根據使用者更改 Status
-                foreach (var activity in activityDTOList.Where(x => activityStatus.ContainsKey(x.Id)))
-                {
-                    activity.Status = activityStatus[activity.Id].Key;
-                    activity.AddTime = activityStatus[activity.Id].Value;
-                }
-            }
+            await AddUserStatusValueAsync(activityDTOList, userId);
+            AddUserVoteValue(activityDTOList, userId);
         }
 
         // 轉換型態
@@ -194,23 +186,8 @@ public class ActivityController : BaseController
         if (User.Identity.IsAuthenticated)
         {
             var userId = (Guid?)ViewData["UserId"] ?? Guid.Empty;
-            var userVotedTags = activity.UserVoteTagInActivity.Where(x => x.UserId.Equals(userId)).Select(x => x.Tag.Id).ToList();
-            activityDTO.Tags.ForEach(x =>
-            {
-                if (userVotedTags.Contains(x.Id))
-                {
-                    x.UserVoted = true;
-                }
-            });
-
-            // Activity Status
-            var user = await _userService.GetByIdAsync(userId, u => u.ActivityStatus);
-
-            if (user == null)
-                throw new UserNotFoundException();
-
-            var activityStatus = user.ActivityStatus?.Select(a => new KeyValuePair<Guid, string>(a.ActivityId, a.Status)).ToDictionary(kv => kv.Key, kv => kv.Value);
-            activityDTO.Status = activityStatus.GetValueOrDefault(activityDTO.Id, null);
+            await AddUserVotedTagValueAsync(activity, userId, activityDTO);
+            AddUserVoteValue(activityDTO, userId);
         }
 
         return activityDTO;
@@ -337,6 +314,9 @@ public class ActivityController : BaseController
             }
         });
 
+        // 加入使用者投票狀態
+        AddUserVoteValue(activityDTOList, userId);
+
         var SegmentResponse = _mapper.Map<ActivitySegmentResponseDTO>(segmentRequest);
 
         SegmentResponse.SearchData = activityDTOList;
@@ -422,16 +402,8 @@ public class ActivityController : BaseController
         if (User.Identity.IsAuthenticated)
         {
             var userId = (Guid?)ViewData["UserId"] ?? Guid.Empty;
-            var activityStatus = await _userService.GetUserActivityStatusAsync(userId);
-            if (activityStatus != null)
-            {
-                // 根據使用者更改 Status
-                foreach (var activity in activityDTOList.Where(x => activityStatus.ContainsKey(x.Id)))
-                {
-                    activity.Status = activityStatus[activity.Id].Key;
-                    activity.AddTime = activityStatus[activity.Id].Value;
-                }
-            }
+            await AddUserStatusValueAsync(activityDTOList, userId);
+            AddUserVoteValue(activityDTOList, userId);
         }
 
         SegmentResponse.SearchData = activityDTOList;
@@ -632,6 +604,8 @@ public class ActivityController : BaseController
                 _userService.SaveSearchHistory(user, searchHistory);
             }
             await _userService.SaveChangesAsync();
+            await AddUserStatusValueAsync(activityDTOList, userId);
+            AddUserVoteValue(activityDTOList, userId);
         }
 
         return response;
@@ -724,7 +698,8 @@ public class ActivityController : BaseController
                     var cast = Expression.Convert(property, typeof(object));
                     var lambda = Expression.Lambda<Func<Comment, object>>(cast, parameter);
                     properties.Add(lambda);
-                }catch (ArgumentException ex)
+                }
+                catch (ArgumentException ex)
                 {
                     throw new BadRequestException("SortBy 參數不存在");
                 }
@@ -795,7 +770,6 @@ public class ActivityController : BaseController
         return Ok();
     }
 
-
     [HttpPost("vote/{id}")]
     public async Task<IActionResult> VoteActivity(Guid id, [FromBody] VoteActivityDTO request)
     {
@@ -857,6 +831,63 @@ public class ActivityController : BaseController
         {
             throw new BadRequestException($"OrderBy 參數錯誤，可用的參數: {string.Join(", ", orderByList)}");
         }
+    }
+
+    private void AddUserVoteValue(IEnumerable<ActivityDTO> activityDTOList, Guid userId)
+    {
+        var userActivityVoteDict = _userService.GetUserVotedActivityDict(userId);
+        if (userActivityVoteDict != null)
+        {
+            // 標示投票
+            foreach (var activity in activityDTOList.Where(x => userActivityVoteDict.ContainsKey(x.Id)))
+            {
+                activity.UserVote = userActivityVoteDict[activity.Id];
+            }
+        }
+    }
+
+    private void AddUserVoteValue(ActivityDTO activityDTO, Guid userId)
+    {
+        var userActivityVoteDict = _userService.GetUserVotedActivityDict(userId);
+        if (userActivityVoteDict != null)
+        {
+            activityDTO.UserVote = userActivityVoteDict[activityDTO.Id];
+        }
+    }
+
+    private async Task AddUserStatusValueAsync(IEnumerable<ActivityDTO> activityDTOList, Guid userId)
+    {
+        var activityStatus = await _userService.GetUserActivityStatusAsync(userId);
+        if (activityStatus != null)
+        {
+            // 根據使用者更改 Status
+            foreach (var activity in activityDTOList.Where(x => activityStatus.ContainsKey(x.Id)))
+            {
+                activity.Status = activityStatus[activity.Id].Key;
+                activity.AddTime = activityStatus[activity.Id].Value;
+            }
+        }
+    }
+
+    private async Task AddUserVotedTagValueAsync(Activity activity, Guid userId, ActivityDTO activityDTO)
+    {
+        var userVotedTags = activity.UserVoteTagInActivity.Where(x => x.UserId.Equals(userId)).Select(x => x.Tag.Id).ToList();
+        activityDTO.Tags.ForEach(x =>
+        {
+            if (userVotedTags.Contains(x.Id))
+            {
+                x.UserVoted = true;
+            }
+        });
+
+        // Activity Status
+        var user = await _userService.GetByIdAsync(userId, u => u.ActivityStatus);
+
+        if (user == null)
+            throw new UserNotFoundException();
+
+        var activityStatus = user.ActivityStatus?.Select(a => new KeyValuePair<Guid, string>(a.ActivityId, a.Status)).ToDictionary(kv => kv.Key, kv => kv.Value);
+        activityDTO.Status = activityStatus.GetValueOrDefault(activityDTO.Id, null);
     }
 }
 

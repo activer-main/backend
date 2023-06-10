@@ -58,10 +58,11 @@ public class UserService : GenericService<User, Guid>
     public IQueryable<User>? GetAllUsersIncludeAll()
     {
         var users = _userRepository.Query()
-            .Include(ac => ac.Avatar)
-            .Include(ac => ac.County)
-            .Include(ac => ac.Area)
-            .Include(ac => ac.Professions);
+            .Include(u => u.Avatar)
+            .Include(u => u.County)
+            .Include(u => u.Area)
+            .Include(u => u.UserVoteActivities)
+            .Include(u => u.Professions);
 
         return users;
     }
@@ -69,10 +70,11 @@ public class UserService : GenericService<User, Guid>
     public User? GetUserByIdIncludeAll(Guid userId)
     {
         var user = _userRepository.Query()
-            .Include(ac => ac.Avatar)
-            .Include(ac => ac.County)
-            .Include(ac => ac.Area)
-            .Include(ac => ac.Professions)
+            .Include(u => u.Avatar)
+            .Include(u => u.County)
+            .Include(u => u.Area)
+            .Include(u => u.UserVoteActivities)
+            .Include(u => u.Professions)
             .FirstOrDefault(u => u.Id == userId);
 
         return user;
@@ -187,6 +189,13 @@ public class UserService : GenericService<User, Guid>
         });
         Update(user);
         return token;
+    }
+
+    public Dictionary<Guid, int>? GetUserVotedActivityDict(Guid userId)
+    {
+        var user = GetUserByIdIncludeAll(userId) ?? throw new UserNotFoundException();
+        var dict = user.UserVoteActivities?.Select(x => new KeyValuePair<Guid, int>(x.ActivityId, x.Vote)).ToDictionary(kv => kv.Key, kv=> kv.Value);
+        return dict;
     }
 
     private static bool IsResetPasswordVerificationCodeAvailable(User User, string token)

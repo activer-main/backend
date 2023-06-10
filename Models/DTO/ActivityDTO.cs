@@ -22,6 +22,8 @@ public class ActivityDTO
     public List<string>? Sources { get; set; }
     public List<BranchDTO> Branches { get; set; }
     public List<TagDTO>? Tags { get; set; }
+    public int UserVote { get; set; } = 0;
+    public int TotalUserVote { get; set; } = 0;
 }
 
 public class ActivityPostDTO
