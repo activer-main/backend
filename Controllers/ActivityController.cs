@@ -57,40 +57,40 @@ public class ActivityController : BaseController
     [Produces("application/json")]
     [ProducesResponseType(typeof(SegmentsResponseDTO<ActivityDTO>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public async Task<ActionResult<ActivitySegmentResponseDTO>?> GetAllActivities([FromQuery] ActivitySegmentDTO segmentRequest)
+    public async Task<ActionResult<ActivitySegmentResponseDTO>?> GetAllActivities([FromQuery] ActivitySegmentDTO request)
     {
         // 檢查 OrderBy
-        CheckOrderByValue(segmentRequest.OrderBy);
+        CheckOrderByValue(request.OrderBy);
 
         // 如果需要存取 status Filter 直接導向 managedActivity
-        if (!segmentRequest.Status.IsNullOrEmpty())
+        if (!request.Status.IsNullOrEmpty())
         {
             if (!User.Identity.IsAuthenticated)
             {
                 throw new UnauthorizedException("使用者未登入");
             }
-            return await GetManageActivities(segmentRequest);
+            return await GetManageActivities(request);
         }
 
         // 獲取所有活動
         var activities = _activityService.GetAllActivitiesIncludeAll();
 
         // 給 SortBy 與 OrderBy 預設值
-        segmentRequest.SortBy ??= "CreateAt";
-        segmentRequest.OrderBy ??= "descending";
+        request.SortBy ??= "CreateAt";
+        request.OrderBy ??= "descending";
 
         // 確認 SortBy 為可以接受的值
-        _activityFilterValidationService.ValidateSortBy(segmentRequest.SortBy);
+        _activityFilterValidationService.ValidateSortBy(request.SortBy);
 
         // 初始化 SortBy 列表
         var properties = new List<Expression<Func<Activity, object>>>() { };
-        var sortBy = segmentRequest.SortBy;
+        var sortBy = request.SortBy;
 
         // Tag filter
-        if (!segmentRequest.Tags.IsNullOrEmpty())
+        if (!request.Tags.IsNullOrEmpty())
         {
             // 獲取所有 tag Id
-            var tagIds = segmentRequest.Tags
+            var tagIds = request.Tags
                 .Select(_tagService.GetTagByText)
                 .Where(x => x != null)
                 .Select(t => t.Id)
@@ -127,16 +127,16 @@ public class ActivityController : BaseController
 
         // 計算總頁數
         var totalCount = activities.Count();
-        var totalPage = totalCount / segmentRequest.CountPerPage + 1;
+        var totalPage = totalCount / request.CountPerPage + 1;
 
         // 檢查 請求頁數 < 總頁數
-        if (segmentRequest.Page > totalPage)
+        if (request.Page > totalPage)
         {
-            throw new BadRequestException($"請求的頁數({segmentRequest.Page})大於總頁數({totalPage})");
+            throw new BadRequestException($"請求的頁數({request.Page})大於總頁數({totalPage})");
         }
 
         // 分頁 & 排序
-        var orderedActivityList = DataHelper.GetSortedAndPagedData(activities, properties, segmentRequest.OrderBy, segmentRequest.Page, segmentRequest.CountPerPage);
+        var orderedActivityList = DataHelper.GetSortedAndPagedData(activities, properties, request.OrderBy, request.Page, request.CountPerPage);
 
         // 轉換型態 Activity => ActivityDTO 
         var activityDTOList = _mapper.Map<IEnumerable<ActivityDTO>>(orderedActivityList);
@@ -150,7 +150,113 @@ public class ActivityController : BaseController
         }
 
         // 轉換型態
-        var response = _mapper.Map<ActivitySegmentResponseDTO>(segmentRequest);
+        var response = _mapper.Map<ActivitySegmentResponseDTO>(request);
+        response.SearchData = activityDTOList;
+        response.TotalData = totalCount;
+        response.TotalPage = totalPage;
+
+        return response;
+    }
+
+    [AllowAnonymous]
+    [HttpGet("recommend")]
+    [Produces("application/json")]
+    [ProducesResponseType(typeof(SegmentsResponseDTO<ActivityDTO>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<ActionResult<ActivitySegmentResponseDTO>?> GetAllRecommendActivities([FromQuery] ActivitySegmentDTO request)
+    {
+        // 檢查 OrderBy
+        CheckOrderByValue(request.OrderBy);
+
+        // 如果需要存取 status Filter 直接導向 managedActivity
+        if (!request.Status.IsNullOrEmpty())
+        {
+            if (!User.Identity.IsAuthenticated)
+            {
+                throw new UnauthorizedException("使用者未登入");
+            }
+            return await GetManageActivities(request);
+        }
+
+        // 獲取所有活動
+        var activities = await _activityService.GetRecommendActivitiesIncludeAllAsync();
+
+        // 給 SortBy 與 OrderBy 預設值
+        request.SortBy ??= "CreateAt";
+        request.OrderBy ??= "descending";
+
+        // 確認 SortBy 為可以接受的值
+        _activityFilterValidationService.ValidateSortBy(request.SortBy);
+
+        // 初始化 SortBy 列表
+        var properties = new List<Expression<Func<Activity, object>>>() { };
+        var sortBy = request.SortBy;
+
+        // Tag filter
+        if (!request.Tags.IsNullOrEmpty())
+        {
+            // 獲取所有 tag Id
+            var tagIds = request.Tags
+                .Select(_tagService.GetTagByText)
+                .Where(x => x != null)
+                .Select(t => t.Id)
+                .AsEnumerable();
+
+            // Tag Filter (至少要有一個 tag 符合)
+            if (tagIds != null)
+            {
+                activities = activities
+                    .Where(a => a.Tags.Any(t => tagIds.Contains(t.Id)));
+            }
+
+            // 加入 Tag 排序
+            properties.Add(a => a.Tags.Count(t => tagIds.Contains(t.Id)));
+        }
+
+        // 加入 sortBy 列表
+        switch (sortBy)
+        {
+            case "Trend":
+                properties.Add(a => a.ActivityClickedCount);
+                break;
+            case "AddTime":
+                properties.Add(a => a.CreatedAt);
+                break;
+            default:
+                var parameter = Expression.Parameter(typeof(Activity), "a");
+                var property = Expression.Property(parameter, sortBy);
+                var cast = Expression.Convert(property, typeof(object));
+                var lambda = Expression.Lambda<Func<Activity, object>>(cast, parameter);
+                properties.Add(lambda);
+                break;
+        }
+
+        // 計算總頁數
+        var totalCount = activities.Count();
+        var totalPage = totalCount / request.CountPerPage + 1;
+
+        // 檢查 請求頁數 < 總頁數
+        if (request.Page > totalPage)
+        {
+            throw new BadRequestException($"請求的頁數({request.Page})大於總頁數({totalPage})");
+        }
+
+        // 分頁 & 排序
+        var orderedActivityList = DataHelper.GetSortedAndPagedData(activities.AsQueryable(), properties, request.OrderBy, request.Page, request.CountPerPage);
+
+        // 轉換型態 Activity => ActivityDTO 
+        var activityDTOList = _mapper.Map<IEnumerable<ActivityDTO>>(orderedActivityList);
+
+        // 在 ActivityDTO 中加入使用者的活動狀態
+        if (User.Identity.IsAuthenticated)
+        {
+            var userId = (Guid?)ViewData["UserId"] ?? Guid.Empty;
+            await AddUserStatusValueAsync(activityDTOList, userId);
+            AddUserVoteValue(activityDTOList, userId);
+        }
+
+        // 轉換型態
+        var response = _mapper.Map<ActivitySegmentResponseDTO>(request);
         response.SearchData = activityDTOList;
         response.TotalData = totalCount;
         response.TotalPage = totalPage;
@@ -634,7 +740,7 @@ public class ActivityController : BaseController
         {
             var newComment = _mapper.Map<Comment>(request);
             existComment.Rate = newComment.Rate;
-            existComment.ModifiedAt = newComment.CreatedAt;
+            existComment.ModifiedAt = DateTime.UtcNow;
             existComment.Content = newComment.Content;
             _userService.Update(user);
             await _userService.SaveChangesAsync();
@@ -690,6 +796,9 @@ public class ActivityController : BaseController
             case "AddTime":
                 properties.Add(a => a.CreatedAt);
                 break;
+            case "ModifiedTime":
+                properties.Add(a => a.ModifiedAt);
+                break;
             default:
                 try
                 {
@@ -741,7 +850,7 @@ public class ActivityController : BaseController
     [HttpGet("comment/filterValue")]
     public async Task<ActionResult<string[]>> GetCommentsSortByValue()
     {
-        string[] sortByList = { "AddTime" };
+        string[] sortByList = { "AddTime", "ModifiedTime" };
         return sortByList;
     }
 

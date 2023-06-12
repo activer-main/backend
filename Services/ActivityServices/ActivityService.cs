@@ -13,12 +13,14 @@ public class ActivityService : GenericService<Activity, Guid>
     private readonly IUnitOfWork _unitOfWork;
     private readonly IRepository<Activity, Guid> _activityRepository;
     private readonly IRepository<ActivityStatus, int> _activityStatusRepository;
+    private readonly IRepository<RecommendedActivity, int> _recommendedActivityRepository;
 
     public ActivityService(IUnitOfWork unitOfWork) : base(unitOfWork)
     {
         _unitOfWork = unitOfWork;
         _activityRepository = _unitOfWork.Repository<Activity, Guid>();
         _activityStatusRepository = _unitOfWork.Repository<ActivityStatus, int>();
+        _recommendedActivityRepository = _unitOfWork.Repository<RecommendedActivity, int>();
     }
 
     public IQueryable<Activity> GetAllActivitiesIncludeAll()
@@ -120,5 +122,34 @@ public class ActivityService : GenericService<Activity, Guid>
             .FirstOrDefaultAsync();
         
         return activity;
+    }
+
+    public async Task<IEnumerable<Activity>?> GetRecommendActivitiesIncludeAllAsync()
+    {
+        var recommendRecord = await _recommendedActivityRepository.Query()
+            .Include(x => x.Activities)
+            .OrderByDescending(p => p.CreatedAt).FirstOrDefaultAsync();
+
+        if (recommendRecord == null)
+        {
+            return null;
+        }
+
+        IEnumerable<Activity> activities = recommendRecord.Activities.Select(x => GetActivityIncludeAllById(x.Id)).Where(x => x != null).AsEnumerable();
+        return activities;
+    }
+
+    public async Task AddRecommendRecordAsync(IEnumerable<Guid> activityIds)
+    {
+        var activities = activityIds.Select(x => GetById(x)).Where(x => x != null).ToList();
+        if (activities == null)
+        {
+            throw new BadRequestException("活動 Id 錯誤，沒有任何活動存在");
+        }
+
+        await _recommendedActivityRepository.AddAsync(new RecommendedActivity
+        {
+            Activities = activities
+        });
     }
 }

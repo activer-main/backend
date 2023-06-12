@@ -168,3 +168,12 @@ public class Location : BaseEntity, IEntity<int>
     [JsonIgnore]
     public List<Branch>? Branches { get; set; }
 }
+
+public class RecommendedActivity : BaseEntity, IEntity<int>
+{
+    [Key]
+    public int Id { get; set; }
+
+    [Required]
+    public ICollection<Activity> Activities { get; set; }
+}

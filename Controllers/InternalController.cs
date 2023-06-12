@@ -460,4 +460,12 @@ public class InternalController : BaseController
         return Ok();
     }
 
+    [HttpPost("activity/recommend")]
+    public async Task<IActionResult> PostRecommendActivity([FromBody] IEnumerable<Guid> recommendActivityIds)
+    {
+        await _activityService.AddRecommendRecordAsync(recommendActivityIds);
+        await _activityService.SaveChangesAsync();
+        return Ok();
+    }
+
 }
