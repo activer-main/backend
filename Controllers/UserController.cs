@@ -286,12 +286,14 @@ public class UserController : BaseController
 
         var user = _mapper.Map<User>(signUpDTO);
         await _userService.AddAsync(user);
+        await _userService.SaveChangesAsync();
 
         // 發送驗證電子郵件
         var token = await _userService.GenerateEmailConfirmationTokenAsync(user);
         var subject = "[noreply] Activer 註冊驗證碼";
         var message = $"<h1>您的驗證碼是: {token} ，此驗證碼於10分鐘後失效</h1>";
 
+        _userService.Update(user);
         await _userService.SaveChangesAsync();
 
         // 把發送郵件加入排程

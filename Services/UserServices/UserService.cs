@@ -165,7 +165,6 @@ public class UserService : GenericService<User, Guid>
             VerificationCode = token,
             ExpiresTime = DateTime.UtcNow.AddMinutes(10),
         });
-        Update(user);
         return token;
     }
 

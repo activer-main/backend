@@ -958,9 +958,10 @@ public class ActivityController : BaseController
     private void AddUserVoteValue(ActivityDTO activityDTO, Guid userId)
     {
         var userActivityVoteDict = _userService.GetUserVotedActivityDict(userId);
+        
         if (userActivityVoteDict != null)
         {
-            activityDTO.UserVote = userActivityVoteDict[activityDTO.Id];
+            activityDTO.UserVote = userActivityVoteDict.GetValueOrDefault(activityDTO.Id, 0);
         }
     }
 
