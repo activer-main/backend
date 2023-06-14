@@ -55,11 +55,7 @@ public class PasswordChangedAuthorizationFilter : IAsyncActionFilter
         {
             var issuedDate = DateTimeOffset.FromUnixTimeSeconds(issuedDateUnix).UtcDateTime;
             // 使用 issuedDate 進行需要的處理
-            if (user.LastChangePasswordTime == null)
-            {
-                await next();
-            }
-            if (user.LastChangePasswordTime > issuedDate)
+            if (user.LastChangePasswordTime != null && user.LastChangePasswordTime > issuedDate)
             {
                 context.Result = new UnauthorizedObjectResult("Token 已過期");
                 return;

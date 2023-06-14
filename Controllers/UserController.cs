@@ -484,7 +484,6 @@ public class UserController : BaseController
     /// <returns>刪除是否成功</returns>
     /// <response code="200">成功刪除使用者</response>
     /// <response code="404">找不到指定的使用者</response>
-    [Authorize(Roles = "Admin, InternalUser")]
     [HttpDelete("{id}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -533,9 +532,11 @@ public class UserController : BaseController
         {
             throw new BadRequestException("驗證碼不正確或已失效");
         }
+
         user.Verified = true;
         _userService.Update(user);
         await _userService.SaveChangesAsync();
+
         return Ok("電子郵件驗證成功");
     }
 
@@ -553,11 +554,17 @@ public class UserController : BaseController
     {
         var userId = (Guid?)ViewData["UserId"] ?? Guid.Empty;
 
-        // 驗證電子郵件驗證碼
+        // 使用者是否存在
         var user = await _userService.GetByIdAsync(userId);
         if (user == null)
         {
             throw new UserNotFoundException();
+        }
+
+        // 使用者是否已驗證
+        if (user.Verified)
+        {
+            throw new BadRequestException("使用者已驗證");
         }
 
         // 發送驗證電子郵件
