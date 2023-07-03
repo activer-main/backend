@@ -73,10 +73,12 @@ if (ActiverUser == "Danny")
 else if (ActiverUser == "Local")
 {
     connectionString = builder.Configuration.GetConnectionString("LocalConnection");
-}else if (ActiverUser == "Admin")
+}
+else if (ActiverUser == "Admin")
 {
     connectionString = builder.Configuration.GetConnectionString("AdminConnection");
-}else
+}
+else
 {
     connectionString = builder.Configuration.GetConnectionString("LocalConnection");
 }
